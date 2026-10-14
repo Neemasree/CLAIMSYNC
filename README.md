@@ -8,61 +8,73 @@ CLAIMSYNC helps claims teams decide which claim needs attention first instead of
 
 > Make claim handling priority-aware so urgent, high-value, or near-SLA claims are not buried in the queue.
 
-## Planned stack
+## Stack
 
 - **Frontend:** React, Vite, responsive CSS
 - **Backend:** Node.js, Express, REST API
 - **Database:** PostgreSQL
 - **Priority queue:** Redis sorted sets (planned)
-- **Authentication:** Password hashing, JWT, role-based access control (planned)
+- **Authentication:** Password hashing is implemented for signup; JWT and role-based authorization are planned
 - **SLA monitoring:** Scheduled checks and notifications (planned)
 
 ## Run the frontend
 
 **Requirements:** Node.js 18+ and npm.
 
-1. Clone this repository.
-2. Install dependencies:
+From the repository root:
 
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+npm run dev
+```
 
-3. Start the development server:
-
-   ```bash
-   npm run dev
-   ```
-
-4. Open the local URL printed by Vite in your terminal.
-
-To change the backend URL later, create a local `.env` file with:
+Open the local URL printed by Vite. The frontend defaults to `http://localhost:5000` for the API. To override it, create a root `.env` file:
 
 ```env
 VITE_API_URL=http://localhost:5000
 ```
 
-Do not put passwords, database credentials, or other secrets in frontend environment variables. Vite exposes `VITE_*` variables to browser code.
+Never put database credentials or other secrets in frontend `VITE_*` variables; Vite exposes those values to browser code.
 
-## UI principles
+## Run the signup API
 
-The interface uses a restrained navy-and-blue palette, clear typography, consistent spacing, accessible focus states, responsive layouts, and explicit loading, error, and success feedback.
+1. Create a PostgreSQL database named `claimsync`.
+2. Apply the schema from the repository root (adjust the connection options for your local setup):
+
+   ```bash
+   psql -d claimsync -f backend/schema.sql
+   ```
+
+3. Create `backend/.env` by copying `backend/.env.example`, then set a valid `DATABASE_URL`.
+4. Install and start the API:
+
+   ```bash
+   cd backend
+   npm install
+   npm run dev
+   ```
+
+The API listens on port 5000 by default. `GET /health` checks database connectivity; `POST /signup` validates the submitted fields, hashes the password with bcrypt, and inserts the new user using a parameterized SQL query. New accounts receive the `agent` role by default; clients cannot choose their own role during signup.
 
 ## Current progress
 
 - [x] React/Vite application scaffold and npm scripts
-- [x] Signup form component and responsive page styling
-- [x] Client-side required-field and password-length checks
-- [x] Loading, error, and success feedback in the signup UI
-- [x] Vite React configuration and run instructions
-- [ ] Express signup endpoint and request validation
-- [ ] PostgreSQL users table and parameterized insert
-- [ ] Password hashing and secure authentication
-- [ ] Login and role-based access
+- [x] Responsive signup UI with client-side validation and loading/error/success feedback
+- [x] Express API scaffold and `GET /health` endpoint
+- [x] `POST /signup` request validation and duplicate-email response
+- [x] PostgreSQL users schema with constraints and a default agent role
+- [x] bcrypt password hashing and parameterized user insert
+- [ ] Run the frontend and API together against a configured PostgreSQL instance
+- [ ] Automated tests for signup validation and API/database behavior
+- [ ] Login, JWT sessions, and role-based authorization
 - [ ] Claim creation, team routing, and priority queue
-- [ ] SLA monitoring, notifications, tests, and deployment
+- [ ] SLA monitoring, notifications, and deployment
 
-**Important:** The signup UI sends a `POST /signup` request to the configured API URL (default: `http://localhost:5000`). The backend endpoint is not implemented yet, so account creation will not succeed until the backend is built and running.
+**Current limitation:** The signup API code is in place, but it will not start until `backend/.env` contains a working `DATABASE_URL` and the database schema has been applied. The app has not yet been executed or integration-tested in this environment.
+
+## UI principles
+
+The interface uses a restrained navy-and-blue palette, clear typography, consistent spacing, accessible focus states, responsive layouts, and explicit loading, error, and success feedback.
 
 ## Learning approach
 
