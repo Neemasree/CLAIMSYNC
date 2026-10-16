@@ -14,12 +14,12 @@ CLAIMSYNC helps claims teams decide which claim needs attention first instead of
 - **Backend:** Node.js, Express, REST API
 - **Database:** PostgreSQL
 - **Priority queue:** Redis sorted sets (planned)
-- **Authentication:** Password hashing is implemented for signup; JWT and role-based authorization are planned
+- **Authentication:** Signup password hashing is implemented; login, JWT, and role-based authorization are planned
 - **SLA monitoring:** Scheduled checks and notifications (planned)
 
 ## Run the frontend
 
-**Requirements:** Node.js 18+ and npm.
+**Requirements:** Node.js 20+ and npm.
 
 From the repository root:
 
@@ -39,7 +39,7 @@ Never put database credentials or other secrets in frontend `VITE_*` variables; 
 ## Run the signup API
 
 1. Create a PostgreSQL database named `claimsync`.
-2. Apply the schema from the repository root (adjust the connection options for your local setup):
+2. Apply the schema from the repository root:
 
    ```bash
    psql -d claimsync -f backend/schema.sql
@@ -56,21 +56,38 @@ Never put database credentials or other secrets in frontend `VITE_*` variables; 
 
 The API listens on port 5000 by default. `GET /health` checks database connectivity; `POST /signup` validates the submitted fields, hashes the password with bcrypt, and inserts the new user using a parameterized SQL query. New accounts receive the `agent` role by default; clients cannot choose their own role during signup.
 
+## Automated checks
+
+The GitHub Actions workflow in `.github/workflows/ci.yml` is configured to build the React frontend and run the backend signup tests on pushes and pull requests targeting `main`.
+
+Run the API tests locally:
+
+```bash
+cd backend
+npm install
+npm test
+```
+
+The tests use a fake database pool and password hasher, so validation and API behavior can be tested without connecting to a real PostgreSQL database. They do **not** replace a real end-to-end database test.
+
 ## Current progress
 
 - [x] React/Vite application scaffold and npm scripts
 - [x] Responsive signup UI with client-side validation and loading/error/success feedback
-- [x] Express API scaffold and `GET /health` endpoint
-- [x] `POST /signup` request validation and duplicate-email response
+- [x] Express app separated from server startup for testability
+- [x] `GET /health` and `POST /signup` endpoints
+- [x] Signup validation, normalized email, duplicate-email response, and safe error messages
 - [x] PostgreSQL users schema with constraints and a default agent role
 - [x] bcrypt password hashing and parameterized user insert
-- [ ] Run the frontend and API together against a configured PostgreSQL instance
-- [ ] Automated tests for signup validation and API/database behavior
+- [x] Automated API tests for validation, success, duplicates, and server errors
+- [x] GitHub Actions workflow for frontend build and backend tests
+- [ ] Confirm GitHub Actions succeeds and run the frontend build/tests
+- [ ] Test signup against a configured PostgreSQL instance
 - [ ] Login, JWT sessions, and role-based authorization
 - [ ] Claim creation, team routing, and priority queue
 - [ ] SLA monitoring, notifications, and deployment
 
-**Current limitation:** The signup API code is in place, but it will not start until `backend/.env` contains a working `DATABASE_URL` and the database schema has been applied. The app has not yet been executed or integration-tested in this environment.
+**Current limitation:** The API needs a working `DATABASE_URL` and applied schema for real signup. The automated tests and CI workflow have been committed, but this environment has not executed them; check the Actions tab for their actual result.
 
 ## UI principles
 
