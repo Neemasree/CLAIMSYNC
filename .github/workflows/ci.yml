@@ -1,0 +1,41 @@
+name: CLAIMSYNC checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  frontend-build:
+    name: Build React frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install frontend dependencies
+        run: npm install
+      - name: Build frontend
+        run: npm run build
+
+  backend-tests:
+    name: Test Express API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm install
+      - name: Run API tests
+        working-directory: backend
+        run: npm test
