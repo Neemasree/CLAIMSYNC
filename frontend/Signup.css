@@ -29,3 +29,4 @@
 @media(max-width:900px){.signup-page{grid-template-columns:1fr}.signup-story{display:none}.signup-panel{min-height:100vh;padding:32px 22px}.mobile-brand{display:inline-flex}.signup-card{width:min(100%,480px)}}
 @media(max-width:420px){.signup-panel{padding:20px 14px}.signup-card{padding:24px 20px;border-radius:18px}.signup-heading h2{font-size:2rem}.mobile-brand{margin-bottom:26px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
+@media(prefers-contrast:more){.field input{border-color:#56657a}.field input::placeholder{color:#4d5c70}.field-hint,.signup-legal{color:#4c5a6e}.form-message.error{border:2px solid #8e1b1b}.form-message.success{border:2px solid #17643c}.signup-button:focus-visible{outline-color:#2449d8;outline-width:4px}}
