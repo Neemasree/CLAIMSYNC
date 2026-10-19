@@ -14,7 +14,7 @@ CLAIMSYNC helps claims teams decide which claim needs attention first instead of
 - **Backend:** Node.js, Express, REST API
 - **Database:** PostgreSQL
 - **Priority queue:** Redis sorted sets (planned)
-- **Authentication:** Signup password hashing is implemented; login, JWT, and role-based authorization are planned
+- **Authentication:** Signup, bcrypt password hashing, email/password login, signed JWT sessions, and an authenticated current-user endpoint
 - **SLA monitoring:** Scheduled checks and notifications (planned)
 
 ## Run the frontend
@@ -36,7 +36,7 @@ VITE_API_URL=http://localhost:5000
 
 Never put database credentials or other secrets in frontend `VITE_*` variables; Vite exposes those values to browser code.
 
-## Run the signup API
+## Run the authentication API
 
 1. Create a PostgreSQL database named `claimsync`.
 2. Apply the schema from the repository root:
@@ -54,7 +54,7 @@ Never put database credentials or other secrets in frontend `VITE_*` variables; 
    npm run dev
    ```
 
-The API listens on port 5000 by default. `GET /health` checks database connectivity; `POST /signup` validates the submitted fields, hashes the password with bcrypt, and inserts the new user using a parameterized SQL query. New accounts receive the `agent` role by default; clients cannot choose their own role during signup.
+The API listens on port 5000 by default. `GET /health` checks database connectivity; `POST /signup` creates an account with a bcrypt password hash; `POST /login` verifies the email and password and returns a signed JWT; and `GET /me` validates the bearer token and returns the current user's safe profile. New accounts receive the `agent` role by default; clients cannot choose their own role during signup. For local development, the API has a development-only JWT signing key fallback. Before deployment, set `NODE_ENV=production` and configure a long, random `JWT_SECRET` in `backend/.env`. Never commit real secrets.
 
 ## Automated checks
 
@@ -79,11 +79,14 @@ The tests use a fake database pool and password hasher, so validation and API be
 - [x] Signup validation, normalized email, duplicate-email response, and safe error messages
 - [x] PostgreSQL users schema with constraints and a default agent role
 - [x] bcrypt password hashing and parameterized user insert
-- [x] Automated API tests for validation, success, duplicates, and server errors
+- [x] Automated API tests for signup validation, success, duplicates, and server errors
+- [x] Login API with password verification and signed JWT sessions
+- [x] Authenticated `GET /me` endpoint with token validation
+- [x] React login page, signup-to-login handoff, and authenticated dashboard shell
 - [x] GitHub Actions workflow for frontend build and backend tests
 - [ ] Confirm GitHub Actions succeeds and run the frontend build/tests
 - [ ] Test signup against a configured PostgreSQL instance
-- [ ] Login, JWT sessions, and role-based authorization
+- [ ] Role-based authorization for protected claim-management operations
 - [ ] Claim creation, team routing, and priority queue
 - [ ] SLA monitoring, notifications, and deployment
 
