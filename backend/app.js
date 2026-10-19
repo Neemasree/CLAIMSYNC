@@ -88,7 +88,7 @@ export function createApp({
       if (!cleanName || cleanName.length > 120) {
         return res.status(400).json({ message: "Name must contain between 1 and 120 characters." });
       }
-      if (cleanEmail.length > 254 || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(cleanEmail)) {
+      if (cleanEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
         return res.status(400).json({ message: "Enter a valid email address." });
       }
       if (password.length < 8 || password.length > 128) {
@@ -151,7 +151,7 @@ export function createApp({
   app.get("/me", async (req, res, next) => {
     try {
       const authorization = req.get("authorization") || "";
-      const match = authorization.match(/^Bearer\\s+(.+)$/i);
+      const match = authorization.match(/^Bearer\s+(.+)$/i);
       const payload = match && jwtSecret ? verifyToken(match[1], jwtSecret) : null;
       if (!payload) return res.status(401).json({ message: "Please log in again." });
 
