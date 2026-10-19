@@ -3,7 +3,7 @@ import "./Signup.css";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-function Signup() {
+function Signup({ onSignupSuccess, onSwitchToLogin }) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -66,6 +66,7 @@ function Signup() {
 
       setSuccess(data.message || "Your account was created successfully.");
       setFormData({ name: "", email: "", password: "" });
+      onSignupSuccess?.(email);
     } catch (requestError) {
       setError(
         requestError instanceof TypeError
@@ -184,6 +185,7 @@ function Signup() {
             By creating an account, you agree to use CLAIMSYNC responsibly.
             Keep your login details secure.
           </p>
+          <p className="auth-switch">Already have an account? <button type="button" onClick={onSwitchToLogin}>Log in</button></p>
         </div>
       </section>
     </main>
