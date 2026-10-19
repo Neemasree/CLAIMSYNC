@@ -47,3 +47,36 @@
 .dashboard-tile h2{margin:20px 0 9px;font-size:1.08rem;letter-spacing:-.02em}.dashboard-tile p{margin:0;color:#66758c;font-size:.9rem;line-height:1.7}.tile-status{display:inline-block;margin-top:18px;padding:6px 9px;border-radius:7px;color:#52627a;background:#f1f4f9;font-size:.75rem;font-weight:750}
 .account-panel{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:24px;padding:22px 24px;border:1px solid #e0e7f1;border-radius:16px;background:#fff}.account-label{margin:0 0 8px;color:#66758c;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em}.account-panel strong{font-size:1rem}.account-panel p:last-child{margin:6px 0 0;color:#66758c;font-size:.9rem}.role-pill{padding:7px 11px;border-radius:999px;color:#2449d8;background:#eff3ff;font-size:.78rem;font-weight:800;text-transform:capitalize}
 @media(max-width:760px){.dashboard-grid{grid-template-columns:1fr}.dashboard-tile{min-height:0}.dashboard-header{padding:18px 22px}.dashboard-content{padding-top:42px}.account-panel{align-items:flex-start}}
+
+/* Colourful CLAIMSYNC refresh: gradients, depth, motion and accessible focus states */
+:root{--claims-blue:#6657f5;--claims-blue-dark:#4f3ee0;--claims-ink:#192044;--claims-muted:#66708f;--claims-border:#e3e6f7;--claims-violet:#8b5cf6;--claims-cyan:#27c7d9;--claims-pink:#f472b6;--claims-mint:#40d9b2}
+body{background:#f6f5ff}
+.signup-page{background:radial-gradient(circle at 100% 0,rgba(139,92,246,.1),transparent 28%),#f7f7ff}
+.signup-story{background:radial-gradient(circle at 82% 18%,rgba(39,199,217,.27),transparent 27%),radial-gradient(circle at 8% 75%,rgba(244,114,182,.19),transparent 29%),radial-gradient(circle at 55% 45%,rgba(139,92,246,.32),transparent 38%),linear-gradient(145deg,#11152f 0%,#242052 53%,#173b55 100%)}
+.signup-story:before{position:absolute;inset:0;pointer-events:none;content:"";opacity:.22;background-image:linear-gradient(rgba(255,255,255,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.12) 1px,transparent 1px);background-size:42px 42px;mask-image:linear-gradient(to bottom,black,transparent 86%)}
+.signup-story:after{border-color:rgba(190,178,255,.22);box-shadow:0 0 0 42px rgba(139,92,246,.06),0 0 0 84px rgba(39,199,217,.045),0 0 0 126px rgba(244,114,182,.025)}
+.brand-mark{border-color:rgba(255,255,255,.27);background:linear-gradient(135deg,rgba(139,92,246,.55),rgba(39,199,217,.26));box-shadow:0 8px 28px rgba(139,92,246,.18)}
+.story-eyebrow{color:#c4b5fd}.story-copy h1 span{background:linear-gradient(90deg,#c4b5fd,#67e8f9,#f9a8d4);-webkit-background-clip:text;background-clip:text;color:transparent}
+.point-check{color:#a5f3fc;background:linear-gradient(135deg,rgba(139,92,246,.36),rgba(39,199,217,.2));border:1px solid rgba(196,181,253,.18)}
+.signup-panel{background:radial-gradient(circle at 100% 0,rgba(139,92,246,.11),transparent 34%),radial-gradient(circle at 0 100%,rgba(39,199,217,.08),transparent 30%),#f7f7ff}
+.signup-card{border-color:#e6e3fa;border-radius:25px;box-shadow:0 30px 90px rgba(44,37,104,.12),0 5px 16px rgba(44,37,104,.04)}
+.signup-heading .eyebrow{color:#7565f6}.field input{border-color:#dfe2f3;border-radius:13px;background:linear-gradient(180deg,#fff,#fdfcff);transition:border-color 180ms ease,box-shadow 180ms ease}
+.field input:focus-visible{border-color:#7868f8;box-shadow:0 0 0 4px rgba(120,104,248,.16)}
+.signup-button{background:linear-gradient(100deg,#6555f5,#8b5cf6 58%,#5b9ff8);box-shadow:0 12px 25px rgba(101,85,245,.24)}
+.signup-button:hover:not(:disabled){background:linear-gradient(100deg,#5141e8,#7c3aed 58%,#3b82f6);box-shadow:0 15px 32px rgba(101,85,245,.3)}
+.form-message.error{border-color:#fecaca;background:linear-gradient(100deg,#fff1f2,#fff7fb)}.form-message.success{border-color:#a7f3d0;background:linear-gradient(100deg,#ecfdf5,#effcff)}
+.dashboard-page{background:radial-gradient(circle at 100% 0,rgba(139,92,246,.1),transparent 30%),radial-gradient(circle at 0 80%,rgba(39,199,217,.07),transparent 28%),#f7f7ff}
+.dashboard-header{background:rgba(255,255,255,.88);backdrop-filter:blur(16px);border-bottom-color:#e8e5fa}
+.dashboard-brand .brand-mark{color:#fff;background:linear-gradient(135deg,#6657f5,#27c7d9);border:0}.dashboard-content{max-width:1180px}.dashboard-eyebrow{color:#7665f6}.dashboard-grid{gap:20px}
+.dashboard-tile{position:relative;overflow:hidden;border-color:#e5e3f7;border-radius:22px;background:linear-gradient(145deg,#fff,#fbfaff);box-shadow:0 16px 42px rgba(44,37,104,.06);transition:transform 180ms ease,box-shadow 180ms ease}
+.dashboard-tile:before{position:absolute;inset:0 0 auto;height:4px;content:"";background:linear-gradient(90deg,#6657f5,#27c7d9,#f472b6)}
+.dashboard-tile:hover{transform:translateY(-3px);box-shadow:0 22px 50px rgba(44,37,104,.11)}
+.dashboard-tile:nth-child(2):before{background:linear-gradient(90deg,#27c7d9,#60a5fa)}.dashboard-tile:nth-child(3):before{background:linear-gradient(90deg,#f472b6,#a78bfa)}
+.dashboard-tile-icon{color:#fff;background:linear-gradient(135deg,#6657f5,#9a72f8);box-shadow:0 8px 20px rgba(101,85,245,.2)}
+.dashboard-tile:nth-child(2) .dashboard-tile-icon{background:linear-gradient(135deg,#0891b2,#27c7d9)}.dashboard-tile:nth-child(3) .dashboard-tile-icon{background:linear-gradient(135deg,#db4c9a,#f472b6)}
+.tile-status{color:#6555d9;background:#f0edff;border:1px solid #e5defe}.dashboard-tile:nth-child(2) .tile-status{color:#087e91;background:#e7fbff;border-color:#c5f3fa}.dashboard-tile:nth-child(3) .tile-status{color:#ad347d;background:#fff0f8;border-color:#fce0f0}
+.account-panel{border-color:#e5e3f7;border-radius:20px;background:linear-gradient(110deg,#fff,#f9f8ff);box-shadow:0 12px 34px rgba(44,37,104,.05)}
+.role-pill{color:#5b45dc;background:#eeeaff;border:1px solid #ddd5ff}.logout-button{border-color:#e0ddf5;border-radius:12px}.logout-button:hover{border-color:#8b7cf8;background:#f7f5ff}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #a5f3fc;outline-offset:3px}
+@media(max-width:900px){.signup-page{grid-template-columns:1fr}.signup-story{min-height:300px;padding:26px 24px}.story-copy{padding:42px 0 30px}.story-copy h1{font-size:clamp(2.4rem,9vw,4rem)}.story-footer{padding-bottom:4px}}
+@media(prefers-reduced-motion:reduce){.dashboard-tile,.field input,.signup-button{transition:none!important}.dashboard-tile:hover{transform:none}}
