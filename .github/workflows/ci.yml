@@ -39,3 +39,66 @@ jobs:
       - name: Run API tests
         working-directory: backend
         run: npm test
+
+  browser-e2e:
+    name: Browser end-to-end auth flow
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: claimsync
+          POSTGRES_PASSWORD: devpassword
+          POSTGRES_DB: claimsync
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U claimsync -d claimsync"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install frontend dependencies
+        run: npm install
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm install
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Apply database schema
+        env:
+          DATABASE_URL: postgresql://claimsync:devpassword@localhost:5432/claimsync
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/schema.sql
+      - name: Install Playwright browser
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Start app and test real browser flow
+        env:
+          DATABASE_URL: postgresql://claimsync:devpassword@localhost:5432/claimsync
+          PORT: 5000
+          FRONTEND_ORIGIN: http://localhost:5173
+          NODE_ENV: test
+          JWT_SECRET: ci-only-claimsync-test-secret-long-enough
+          VITE_API_URL: http://localhost:5000
+        run: |
+          (cd backend && npm start > /tmp/claimsync-api.log 2>&1) &
+          (npm run dev -- --host 127.0.0.1 > /tmp/claimsync-ui.log 2>&1) &
+          ready=0
+          for attempt in $(seq 1 45); do
+            if curl -fsS http://localhost:5000/health >/dev/null && curl -fsS http://localhost:5173/ >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo "Application failed to start"
+            cat /tmp/claimsync-api.log
+            cat /tmp/claimsync-ui.log
+            exit 1
+          fi
+          node tests/e2e-auth.mjs
