@@ -15,7 +15,8 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true,
     "signup page should not overflow horizontally on mobile");
   await page.getByRole("button", { name: /Create account/ }).click();
-  await page.getByRole("alert").getByText("Please complete all fields.").waitFor();
+  await page.getByRole("alert").waitFor();
+  assert.match(await page.getByRole("alert").innerText(), /Please complete all fields/);
 
   // Real browser -> React -> Express -> PostgreSQL signup flow.
   const email = `qa-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`;
@@ -27,7 +28,8 @@ try {
 
   // Signup intentionally hands off to the login screen; it does not auto-login.
   await page.getByRole("heading", { name: "Log in to CLAIMSYNC" }).waitFor();
-  await page.getByRole("status").getByText(/Account created successfully/i).waitFor();
+  await page.getByRole("status").waitFor();
+  assert.match(await page.getByRole("status").innerText(), /Account created successfully/i);
   assert.equal(await page.getByLabel("Email address").inputValue(), email);
 
   // Correct credentials must establish a session and show the authenticated UI.
@@ -50,7 +52,8 @@ try {
   await page.getByLabel("Email address").fill(email);
   await page.getByLabel("Password", { exact: true }).fill("wrong-password");
   await page.getByRole("button", { name: /Log in/ }).click();
-  await page.getByRole("alert").getByText(/Invalid email or password/i).waitFor();
+  await page.getByRole("alert").waitFor();
+  assert.match(await page.getByRole("alert").innerText(), /Invalid email or password/i);
 
   // Duplicate registration must show a useful error instead of creating another account.
   await page.getByRole("button", { name: /Create an account/ }).click();
@@ -58,7 +61,8 @@ try {
   await page.getByLabel("Work email").fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: /Create account/ }).click();
-  await page.getByRole("alert").getByText(/already exists/i).waitFor();
+  await page.getByRole("alert").waitFor();
+  assert.match(await page.getByRole("alert").innerText(), /already exists/i);
 
   assert.deepEqual(pageErrors, [], "browser should not report uncaught JavaScript errors");
   console.log("PASS: mobile signup validation, persisted signup, login, session restore, logout, invalid login, duplicate signup, no browser exceptions");
