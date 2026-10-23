@@ -40,6 +40,20 @@ try {
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true,
     "dashboard should not overflow horizontally on mobile");
 
+  // Real browser -> React -> authenticated API -> PostgreSQL claim intake.
+  const policyNumber = `POL-QA-${Date.now()}`;
+  await page.getByLabel("Policyholder").fill("QA Policyholder");
+  await page.getByLabel("Policy number").fill(policyNumber);
+  await page.getByLabel("Claim type").selectOption("Health");
+  await page.getByLabel("Claim value (₹)").fill("25000");
+  await page.getByLabel("Urgency").selectOption("critical");
+  await page.getByRole("button", { name: /Create claim/ }).click();
+  await page.getByRole("status").filter({ hasText: "Claim created successfully" }).waitFor();
+  await page.getByText(policyNumber).waitFor();
+  await page.getByText("QA Policyholder").waitFor();
+  assert.equal(await page.getByText("Total claims").locator("..").innerText().then((text) => Number(text.match(/\\d+/)?.[0]) >= 1), true,
+    "claim summary should reflect the newly created claim");
+
   // Session must survive a browser reload via sessionStorage + /me.
   await page.reload({ waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "Welcome back, QA." }).waitFor();
@@ -65,7 +79,7 @@ try {
   assert.match(await page.getByRole("alert").innerText(), /already exists/i);
 
   assert.deepEqual(pageErrors, [], "browser should not report uncaught JavaScript errors");
-  console.log("PASS: mobile signup validation, persisted signup, login, session restore, logout, invalid login, duplicate signup, no browser exceptions");
+  console.log("PASS: mobile signup validation, persisted signup, login, claim creation and queue visibility, session restore, logout, invalid login, duplicate signup, no browser exceptions");
 } finally {
   await browser.close();
 }
