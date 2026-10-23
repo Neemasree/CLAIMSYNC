@@ -72,7 +72,7 @@ export default function App() {
   }
 
   if (view === "dashboard" && user && token) {
-    return <Dashboard user={user} onLogout={handleLogout} />;
+    return <Dashboard user={user} token={token} onLogout={handleLogout} />;
   }
 
   if (view === "login") {
