@@ -166,6 +166,73 @@ export function createApp({
     }
   });
 
+
+  function authenticatedUser(req) {
+    const authorization = req.get("authorization") || "";
+    const match = authorization.match(/^Bearer\s+(.+)$/i);
+    return match && jwtSecret ? verifyToken(match[1], jwtSecret) : null;
+  }
+
+  app.get("/claims", async (req, res, next) => {
+    try {
+      const user = authenticatedUser(req);
+      if (!user) return res.status(401).json({ message: "Please log in again." });
+      const sharedQueue = user.role === "admin" || user.role === "team_lead";
+      const sql = "SELECT c.*, creator.name AS created_by_name FROM claims c JOIN users creator ON creator.id = c.created_by " +
+        (sharedQueue ? "" : "WHERE c.created_by = $1 OR c.assigned_to = $1 ") +
+        "ORDER BY CASE c.urgency WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END, c.sla_due_at ASC NULLS LAST, c.created_at ASC";
+      const result = sharedQueue ? await pool.query(sql) : await pool.query(sql, [user.sub]);
+      return res.status(200).json({ claims: result.rows });
+    } catch (error) { return next(error); }
+  });
+
+  app.post("/claims", async (req, res, next) => {
+    try {
+      const user = authenticatedUser(req);
+      if (!user) return res.status(401).json({ message: "Please log in again." });
+      const body = req.body ?? {};
+      const policyholder = typeof body.policyholder === "string" ? body.policyholder.trim() : "";
+      const policyNumber = typeof body.policyNumber === "string" ? body.policyNumber.trim() : "";
+      const claimType = typeof body.claimType === "string" ? body.claimType.trim() : "";
+      const description = typeof body.description === "string" ? body.description.trim() : "";
+      const urgency = body.urgency ?? "normal";
+      const claimValue = body.claimValue === undefined ? 0 : Number(body.claimValue);
+      const slaDueAt = body.slaDueAt || null;
+      if (!policyholder || policyholder.length > 120) return res.status(400).json({ message: "Policyholder must contain between 1 and 120 characters." });
+      if (!policyNumber || policyNumber.length > 80) return res.status(400).json({ message: "Policy number must contain between 1 and 80 characters." });
+      if (!claimType || claimType.length > 80) return res.status(400).json({ message: "Claim type must contain between 1 and 80 characters." });
+      if (!["low", "normal", "high", "critical"].includes(urgency)) return res.status(400).json({ message: "Urgency must be low, normal, high, or critical." });
+      if (!Number.isFinite(claimValue) || claimValue < 0 || claimValue > 1000000000000) return res.status(400).json({ message: "Claim value must be a non-negative number within the supported limit." });
+      if (description.length > 5000) return res.status(400).json({ message: "Description must be at most 5000 characters." });
+      if (slaDueAt && (typeof slaDueAt !== "string" || Number.isNaN(Date.parse(slaDueAt)))) return res.status(400).json({ message: "SLA deadline must be a valid date." });
+      const result = await pool.query(
+        "INSERT INTO claims (policyholder, policy_number, claim_type, description, claim_value, urgency, sla_due_at, created_by) " +
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
+        [policyholder, policyNumber, claimType, description || null, claimValue, urgency, slaDueAt, user.sub]
+      );
+      return res.status(201).json({ message: "Claim created successfully.", claim: result.rows[0] });
+    } catch (error) {
+      if (error.code === "23505") return res.status(409).json({ message: "A claim with this policy number already exists." });
+      return next(error);
+    }
+  });
+
+  app.patch("/claims/:id/status", async (req, res, next) => {
+    try {
+      const user = authenticatedUser(req);
+      if (!user) return res.status(401).json({ message: "Please log in again." });
+      if (!["admin", "team_lead"].includes(user.role)) return res.status(403).json({ message: "Only team leads and admins can update claim status." });
+      const id = req.params.id;
+      const status = req.body?.status;
+      const allowedStatuses = ["submitted", "in_review", "awaiting_information", "approved", "rejected", "closed"];
+      if (!/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ message: "Invalid claim ID." });
+      if (!allowedStatuses.includes(status)) return res.status(400).json({ message: "Choose a valid claim status." });
+      const result = await pool.query("UPDATE claims SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *", [status, id]);
+      if (!result.rows[0]) return res.status(404).json({ message: "Claim not found." });
+      return res.status(200).json({ message: "Claim status updated successfully.", claim: result.rows[0] });
+    } catch (error) { return next(error); }
+  });
+
   app.use((error, _req, res, _next) => {
     console.error(error);
     res.status(500).json({ message: "Something went wrong. Please try again." });
