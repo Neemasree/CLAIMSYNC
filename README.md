@@ -13,9 +13,9 @@ CLAIMSYNC helps claims teams decide which claim needs attention first instead of
 - **Frontend:** React, Vite, responsive CSS
 - **Backend:** Node.js, Express, REST API
 - **Database:** PostgreSQL
-- **Priority queue:** Redis sorted sets (planned)
+- **Priority queue:** PostgreSQL queue ordering by urgency, SLA deadline, and creation time (Redis sorted sets remain a future scale-out option)
 - **Authentication:** Signup, bcrypt password hashing, email/password login, signed JWT sessions, and an authenticated current-user endpoint
-- **SLA monitoring:** Scheduled checks and notifications (planned)
+- **SLA monitoring:** Deadline capture and queue visibility are implemented; scheduled breach checks and notifications remain planned
 
 ## Run the frontend
 
@@ -86,9 +86,11 @@ The tests use a fake database pool and password hasher, so validation and API be
 - [x] GitHub Actions workflow for frontend build and backend tests
 - [ ] Confirm GitHub Actions succeeds and run the frontend build/tests
 - [ ] Test signup against a configured PostgreSQL instance
-- [ ] Role-based authorization for protected claim-management operations
-- [ ] Claim creation, team routing, and priority queue
-- [ ] SLA monitoring, notifications, and deployment
+- [x] Authenticated claim creation and queue listing
+- [x] Role-scoped queue visibility (agents see created/assigned claims; team leads/admins see shared queue)
+- [x] Urgency/SLA-aware claim ordering and validation
+- [x] Role-protected status updates for team leads/admins
+- [ ] Claim assignment UI, full audit trail, scheduled SLA breach alerts, notifications, and production deployment
 
 **Current limitation:** The API needs a working `DATABASE_URL` and applied schema for real signup. The automated tests and CI workflow have been committed, but this environment has not executed them; check the Actions tab for their actual result.
 
@@ -99,3 +101,16 @@ The interface uses a restrained navy-and-blue palette, clear typography, consist
 ## Learning approach
 
 Build one feature at a time, understand the frontend-to-backend-to-database flow, and validate each milestone before moving on. The priority-routing engine remains the core product differentiator; signup is the first supporting feature.
+
+
+## Claims API (current milestone)
+
+The claims schema is in `backend/schema.sql`; apply it to an existing database with the users table before using these routes. All routes require a valid bearer token unless noted.
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/claims` | List claims ordered by urgency and SLA deadline; agents see their own/assigned claims, team leads/admins see the shared queue |
+| `POST` | `/claims` | Validate and create a claim with policyholder, policy number, type, value, urgency, optional description and SLA deadline |
+| `PATCH` | `/claims/:id/status` | Update status; restricted to team leads and admins |
+
+The dashboard now provides claim intake, a priority queue, claim summary counts, and role-aware status controls. This milestone does not yet implement automatic assignment, a background SLA scheduler, notification delivery, or a complete claim event/audit history.
