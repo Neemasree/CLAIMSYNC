@@ -108,3 +108,5 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #a5f3
 .claim-tag{display:inline-flex;padding:5px 8px;border-radius:7px;color:#52627a;background:#f1f4f9;font-size:.74rem;font-weight:750;text-transform:capitalize;white-space:nowrap}
 .urgency-low{color:#17643c;background:#effbf4}.urgency-normal{color:#52627a;background:#f1f4f9}.urgency-high{color:#8a4a0a;background:#fff5e8}.urgency-critical{color:#9b2424;background:#fff0f0}
 @media(max-width:760px){.claims-metrics{grid-template-columns:1fr}.claim-form{grid-template-columns:1fr}.claim-description,.claim-submit{grid-column:auto}.claims-section-heading{align-items:flex-start}.dashboard-header-actions{gap:8px}.claims-table{min-width:850px}}
+
+.sla-overdue{color:#9b2424!important;font-weight:800}.sla-due-soon{color:#8a4a0a!important;font-weight:800}.sla-on-track{color:#17643c!important;font-weight:700}
