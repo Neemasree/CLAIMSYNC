@@ -149,7 +149,7 @@ export default function Dashboard({ user, token, onLogout }) {
                   <td>{money(claim.claim_value)}</td>
                   <td><span className={`claim-tag urgency-${claim.urgency}`}>{claim.urgency}</span></td>
                   <td><span className="claim-tag">{claim.status.replaceAll("_", " ")}</span></td>
-                  <td>{claim.sla_due_at ? new Date(claim.sla_due_at).toLocaleString() : "Not set"}</td>
+                  <td>{claim.sla_due_at ? <><span>{new Date(claim.sla_due_at).toLocaleString()}</span><small className={new Date(claim.sla_due_at).getTime() < Date.now() && !["approved", "rejected", "closed"].includes(claim.status) ? "sla-overdue" : new Date(claim.sla_due_at).getTime() < Date.now() + 24 * 60 * 60 * 1000 && !["approved", "rejected", "closed"].includes(claim.status) ? "sla-due-soon" : "sla-on-track"}>{["approved", "rejected", "closed"].includes(claim.status) ? "Resolved" : new Date(claim.sla_due_at).getTime() < Date.now() ? "Overdue" : new Date(claim.sla_due_at).getTime() < Date.now() + 24 * 60 * 60 * 1000 ? "Due within 24 hours" : "On track"}</small></> : "Not set"}</td>
                   {["admin", "team_lead"].includes(user.role) && <td><select aria-label={`Status for ${claim.policyholder}`} value={claim.status} onChange={(e) => updateStatus(claim, e.target.value)}><option value="submitted">Submitted</option><option value="in_review">In review</option><option value="awaiting_information">Awaiting information</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="closed">Closed</option></select></td>}
                 </tr>)}</tbody>
               </table>
