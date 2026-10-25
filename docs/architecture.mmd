@@ -1,0 +1,37 @@
+flowchart LR
+  subgraph CLIENT["🖥️ Client"]
+    UI["React + Vite<br/>Signup · Login · Claims dashboard"]
+  end
+  subgraph SERVER["🛡️ Express API"]
+    CORS["CORS + JSON parsing"]
+    AUTH["Signup / Login / Me<br/>bcrypt + signed JWT"]
+    CLAIMS["Claims API<br/>Create · List · Update status"]
+    RULES["Validation + role checks<br/>Agent · Team lead · Admin"]
+  end
+  subgraph DATA["🗄️ PostgreSQL"]
+    USERS[("users<br/>profiles · password hashes · roles")]
+    CLAIMDB[("claims<br/>policy · value · urgency · status · SLA")]
+  end
+  subgraph QUALITY["🧪 GitHub Actions"]
+    API_TEST["API tests"]
+    E2E["Playwright browser flow"]
+    BUILD["Frontend production build"]
+  end
+  UI -->|"HTTPS/JSON + Bearer JWT"| CORS
+  CORS --> AUTH
+  CORS --> CLAIMS
+  CLAIMS --> RULES
+  AUTH <--> USERS
+  RULES <--> CLAIMDB
+  API_TEST -.-> SERVER
+  E2E -.-> UI
+  E2E -.-> SERVER
+  BUILD -.-> UI
+  classDef client fill:#DBEAFE,stroke:#2563EB,color:#1E3A8A,stroke-width:2px
+  classDef api fill:#DCFCE7,stroke:#16A34A,color:#14532D,stroke-width:2px
+  classDef data fill:#E0E7FF,stroke:#4F46E5,color:#312E81,stroke-width:2px
+  classDef quality fill:#FEF3C7,stroke:#D97706,color:#78350F,stroke-width:2px
+  class UI client
+  class CORS,AUTH,CLAIMS,RULES api
+  class USERS,CLAIMDB data
+  class API_TEST,E2E,BUILD quality
