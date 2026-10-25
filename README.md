@@ -1,66 +1,241 @@
-# CLAIMSYNC
+<div align="center">
 
-**Priority-weighted insurance claim routing system**
+# 🧾 CLAIMSYNC
 
-CLAIMSYNC helps claims teams decide which claim needs attention first instead of relying only on first-in, first-out (FIFO) order. The planned priority score considers claim urgency, normalized claim value, and proximity to an SLA deadline. Claims are then routed to the appropriate team.
+### Priority-aware insurance claims management
 
-## Product goal
+From claim intake to triage and status updates — a role-aware workspace designed to make urgent claims visible and keep teams aligned.
 
-> Make claim handling priority-aware so urgent, high-value, or near-SLA claims are not buried in the queue.
+<br/>
 
-## Stack
+[![CI](https://img.shields.io/github/actions/workflow/status/Neemasree/CLAIMSYNC/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=CI)](https://github.com/Neemasree/CLAIMSYNC/actions)
+[![React](https://img.shields.io/badge/React-Vite-646CFF?style=for-the-badge&logo=react&logoColor=white)](https://react.dev/)
+[![Node](https://img.shields.io/badge/Node.js-Express-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Data%20layer-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
-- **Frontend:** React, Vite, responsive CSS
-- **Backend:** Node.js, Express, REST API
-- **Database:** PostgreSQL
-- **Priority queue:** PostgreSQL queue ordering by urgency, SLA deadline, and creation time (Redis sorted sets remain a future scale-out option)
-- **Authentication:** Signup, bcrypt password hashing, email/password login, signed JWT sessions, and an authenticated current-user endpoint
-- **SLA monitoring:** Deadline capture and queue visibility are implemented; scheduled breach checks and notifications remain planned
+</div>
 
-## Run the frontend
+---
 
-**Requirements:** Node.js 20+ and npm.
+## 🎯 Product goal
 
-From the repository root:
+Insurance claim teams need to see what is urgent, understand who can act, and keep claim progress clear. CLAIMSYNC provides an authenticated claims workspace with validated intake, a priority-ordered queue, role-aware access, and visible SLA deadlines.
+
+> **Current focus:** make the claim workflow real before adding automated assignment, scheduled SLA monitoring, and notification delivery.
+
+## ✨ Current features
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### 🔐 Authentication & access
+- Account signup with bcrypt password hashing
+- Email/password login with signed JWT
+- Session restore and logout
+- Server-side bearer-token validation
+- Agent, team lead, and admin roles
+- Agents see claims they created or are assigned
+
+</td>
+<td width="50%" valign="top">
+
+### 🧾 Claims workspace
+- Create claims with policyholder, policy number, type, value, urgency, description, and optional SLA deadline
+- PostgreSQL persistence and validation
+- Priority ordering: critical → high → normal → low, then earliest SLA
+- Summary counts for total, urgent, and open claims
+- Team leads/admins can update claim status
+- Deadline labels: overdue, due within 24 hours, on track
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### 🧪 Quality checks
+- Backend API tests
+- React production build
+- Playwright browser workflow
+- Real PostgreSQL schema setup in browser CI
+- Signup, login, session restore, logout and claim-intake coverage
+
+</td>
+<td width="50%" valign="top">
+
+### 🧭 Product direction
+- Priority scoring that can include urgency, claim value and SLA proximity
+- Claim assignment and team routing
+- Scheduled SLA breach detection
+- Notifications and full claim audit history
+
+These are planned extensions, not all implemented today.
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🏗️ Architecture
+
+This diagram is kept in sync with the **implemented** application. When routes, services, data stores, or workflow responsibilities change, update both this diagram and [`docs/architecture.mmd`](docs/architecture.mmd) in the same change.
+
+```mermaid
+flowchart LR
+  subgraph CLIENT["🖥️ Client"]
+    UI["React + Vite<br/>Signup · Login · Claims dashboard"]
+  end
+
+  subgraph SERVER["🛡️ Express API"]
+    CORS["CORS + JSON parsing"]
+    AUTH["Signup / Login / Me<br/>bcrypt + signed JWT"]
+    CLAIMS["Claims API<br/>Create · List · Update status"]
+    RULES["Validation + role checks<br/>Agent · Team lead · Admin"]
+  end
+
+  subgraph DATA["🗄️ PostgreSQL"]
+    USERS[("users<br/>profiles · password hashes · roles")]
+    CLAIMDB[("claims<br/>policy · value · urgency · status · SLA")]
+  end
+
+  subgraph QUALITY["🧪 GitHub Actions"]
+    API_TEST["API tests"]
+    E2E["Playwright browser flow"]
+    BUILD["Frontend production build"]
+  end
+
+  UI -->|"HTTPS/JSON + Bearer JWT"| CORS
+  CORS --> AUTH
+  CORS --> CLAIMS
+  CLAIMS --> RULES
+  AUTH <--> USERS
+  RULES <--> CLAIMDB
+  API_TEST -.-> SERVER
+  E2E -.-> UI
+  E2E -.-> SERVER
+  BUILD -.-> UI
+
+  classDef client fill:#DBEAFE,stroke:#2563EB,color:#1E3A8A,stroke-width:2px
+  classDef api fill:#DCFCE7,stroke:#16A34A,color:#14532D,stroke-width:2px
+  classDef data fill:#E0E7FF,stroke:#4F46E5,color:#312E81,stroke-width:2px
+  classDef quality fill:#FEF3C7,stroke:#D97706,color:#78350F,stroke-width:2px
+  class UI client
+  class CORS,AUTH,CLAIMS,RULES api
+  class USERS,CLAIMDB data
+  class API_TEST,E2E,BUILD quality
+```
+
+### Claim lifecycle (current implementation)
+
+```mermaid
+flowchart TD
+  A["Agent submits claim"] --> B{"Input valid?"}
+  B -->|No| C["Return validation error"]
+  B -->|Yes| D["Save claim in PostgreSQL"]
+  D --> E["Show claim in role-scoped queue"]
+  E --> F{"Team lead / admin?"}
+  F -->|No| G["View claim and SLA deadline"]
+  F -->|Yes| H["Update status"]
+  H --> I["Persist status + updated_at"]
+  I --> E
+```
+
+### Priority ordering
+
+Claims are currently sorted by urgency (critical first), then earliest SLA deadline, then creation time. **A weighted numeric score, automatic assignment, and a scheduled SLA worker are not implemented yet.**
+
+---
+
+## 🧰 Tech stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React, Vite, CSS |
+| Backend | Node.js, Express |
+| Database | PostgreSQL |
+| Authentication | bcryptjs, HMAC-signed JWT |
+| API tests | Node test runner, Supertest |
+| Browser tests | Playwright + Chromium |
+| CI | GitHub Actions |
+
+---
+
+## 🚀 Run locally
+
+**Requirements:** Node.js 20+, npm, and PostgreSQL.
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Neemasree/CLAIMSYNC.git
+cd CLAIMSYNC
+```
+
+### 2. Configure PostgreSQL
+
+Create a database named `claimsync`, then apply the schema from the repository root:
+
+```bash
+psql -d claimsync -v ON_ERROR_STOP=1 -f backend/schema.sql
+```
+
+The schema creates the `users` and `claims` tables and their indexes.
+
+### 3. Start the API
+
+Create `backend/.env` using `backend/.env.example`. Set `DATABASE_URL` and a strong `JWT_SECRET` (never commit real credentials).
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+The API defaults to `http://localhost:5000`. Check connectivity at [`http://localhost:5000/health`](http://localhost:5000/health).
+
+### 4. Start the frontend
+
+In a second terminal, from the repository root:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite. The frontend defaults to `http://localhost:5000` for the API. To override it, create a root `.env` file:
+Vite prints the local frontend URL. By default, the UI calls `http://localhost:5000`. To override it, set `VITE_API_URL` in the root `.env` before starting Vite:
 
 ```env
 VITE_API_URL=http://localhost:5000
 ```
 
-Never put database credentials or other secrets in frontend `VITE_*` variables; Vite exposes those values to browser code.
+Do not put database credentials or private secrets in `VITE_*` variables; they are exposed to browser code.
 
-## Run the authentication API
+---
 
-1. Create a PostgreSQL database named `claimsync`.
-2. Apply the schema from the repository root:
+## 🔌 API overview
 
-   ```bash
-   psql -d claimsync -f backend/schema.sql
-   ```
+All claim routes require a valid `Authorization: Bearer <token>` header.
 
-3. Create `backend/.env` by copying `backend/.env.example`, then set a valid `DATABASE_URL`.
-4. Install and start the API:
+| Method | Route | Purpose |
+|---|---|---|
+| `GET` | `/health` | API and database health check |
+| `POST` | `/signup` | Register an agent account |
+| `POST` | `/login` | Verify credentials and issue a JWT |
+| `GET` | `/me` | Validate token and return safe user profile |
+| `GET` | `/claims` | List claims within the caller's role scope |
+| `POST` | `/claims` | Validate and create a claim |
+| `PATCH` | `/claims/:id/status` | Update status (team leads/admins only) |
 
-   ```bash
-   cd backend
-   npm install
-   npm run dev
-   ```
+### Claim statuses
 
-The API listens on port 5000 by default. `GET /health` checks database connectivity; `POST /signup` creates an account with a bcrypt password hash; `POST /login` verifies the email and password and returns a signed JWT; and `GET /me` validates the bearer token and returns the current user's safe profile. New accounts receive the `agent` role by default; clients cannot choose their own role during signup. For local development, the API has a development-only JWT signing key fallback. Before deployment, set `NODE_ENV=production` and configure a long, random `JWT_SECRET` in `backend/.env`. Never commit real secrets.
+`submitted` · `in_review` · `awaiting_information` · `approved` · `rejected` · `closed`
 
-## Automated checks
+---
 
-The GitHub Actions workflow in `.github/workflows/ci.yml` is configured to build the React frontend and run the backend signup tests on pushes and pull requests targeting `main`.
+## 🧪 Testing & CI
 
-Run the API tests locally:
+Run the backend API tests:
 
 ```bash
 cd backend
@@ -68,49 +243,50 @@ npm install
 npm test
 ```
 
-The tests use a fake database pool and password hasher, so validation and API behavior can be tested without connecting to a real PostgreSQL database. They do **not** replace a real end-to-end database test.
+Build the frontend from the repository root:
 
-## Current progress
+```bash
+npm install
+npm run build
+```
 
-- [x] React/Vite application scaffold and npm scripts
-- [x] Responsive signup UI with client-side validation and loading/error/success feedback
-- [x] Express app separated from server startup for testability
-- [x] `GET /health` and `POST /signup` endpoints
-- [x] Signup validation, normalized email, duplicate-email response, and safe error messages
-- [x] PostgreSQL users schema with constraints and a default agent role
-- [x] bcrypt password hashing and parameterized user insert
-- [x] Automated API tests for signup validation, success, duplicates, and server errors
-- [x] Login API with password verification and signed JWT sessions
-- [x] Authenticated `GET /me` endpoint with token validation
-- [x] React login page, signup-to-login handoff, and authenticated dashboard shell
-- [x] GitHub Actions workflow for frontend build and backend tests
-- [ ] Confirm GitHub Actions succeeds and run the frontend build/tests
-- [ ] Test signup against a configured PostgreSQL instance
-- [x] Authenticated claim creation and queue listing
-- [x] Role-scoped queue visibility (agents see created/assigned claims; team leads/admins see shared queue)
-- [x] Urgency/SLA-aware claim ordering and validation
-- [x] Role-protected status updates for team leads/admins
-- [ ] Claim assignment UI, full audit trail, scheduled SLA breach alerts, notifications, and production deployment
+GitHub Actions runs three jobs on pushes and pull requests to `main`:
 
-**Current limitation:** The API needs a working `DATABASE_URL` and applied schema for real signup. The automated tests and CI workflow have been committed, but this environment has not executed them; check the Actions tab for their actual result.
+1. **Test Express API** — API behavior and validation.
+2. **Build React frontend** — production bundle.
+3. **Browser end-to-end auth flow** — starts PostgreSQL, applies the schema, and exercises the browser flow with Playwright.
 
-## UI principles
+Check the [latest workflow result](https://github.com/Neemasree/CLAIMSYNC/actions) for the authoritative pass/fail status. A CI pass applies to the tested commit and CI environment; it does not prove that a production deployment is configured or healthy.
 
-The interface uses a restrained navy-and-blue palette, clear typography, consistent spacing, accessible focus states, responsive layouts, and explicit loading, error, and success feedback.
+---
 
-## Learning approach
+## 🗺️ Roadmap
 
-Build one feature at a time, understand the frontend-to-backend-to-database flow, and validate each milestone before moving on. The priority-routing engine remains the core product differentiator; signup is the first supporting feature.
+- [x] Signup, login, and authenticated session
+- [x] Role-aware claims queue
+- [x] Claim intake persisted in PostgreSQL
+- [x] Urgency/SLA-based ordering
+- [x] Role-protected status updates
+- [x] SLA deadline indicators in the dashboard
+- [x] API and browser test coverage for the implemented flows
+- [ ] Automated claim assignment and team routing
+- [ ] Configurable weighted priority score (urgency + value + SLA proximity)
+- [ ] Scheduled SLA breach detection and notification delivery
+- [ ] Full claim status history and audit trail
+- [ ] Production deployment and live-environment verification
 
+## 🔒 Security notes
 
-## Claims API (current milestone)
+- Signup assigns the default `agent` role; never trust client-provided roles.
+- Claim queries use parameterized SQL.
+- Keep `JWT_SECRET` and `DATABASE_URL` out of source control.
+- Configure production CORS origins and a strong JWT secret before deployment.
+- Apply database migrations/schema updates before deploying code that depends on new tables.
 
-The claims schema is in `backend/schema.sql`; apply it to an existing database with the users table before using these routes. All routes require a valid bearer token unless noted.
+---
 
-| Method | Route | Purpose |
-| --- | --- | --- |
-| `GET` | `/claims` | List claims ordered by urgency and SLA deadline; agents see their own/assigned claims, team leads/admins see the shared queue |
-| `POST` | `/claims` | Validate and create a claim with policyholder, policy number, type, value, urgency, optional description and SLA deadline |
-| `PATCH` | `/claims/:id/status` | Update status; restricted to team leads and admins |
+<div align="center">
 
-The dashboard now provides claim intake, a priority queue, claim summary counts, and role-aware status controls. This milestone does not yet implement automatic assignment, a background SLA scheduler, notification delivery, or a complete claim event/audit history.
+Built by **[Neema Sree K](https://github.com/Neemasree)** · [Repository](https://github.com/Neemasree/CLAIMSYNC) · [Issues](https://github.com/Neemasree/CLAIMSYNC/issues)
+
+</div>
