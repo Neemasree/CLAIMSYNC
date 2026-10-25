@@ -51,8 +51,9 @@ try {
   await page.getByRole("status").filter({ hasText: "Claim created successfully" }).waitFor();
   await page.getByText(policyNumber).waitFor();
   await page.getByText("QA Policyholder").waitFor();
-  assert.equal(await page.getByText("Total claims").locator("..").innerText().then((text) => Number(text.match(/\\d+/)?.[0]) >= 1), true,
-    "claim summary should reflect the newly created claim");
+  const totalClaimsText = await page.locator(".claims-metrics article").first().locator("strong").innerText();
+  assert.equal(Number(totalClaimsText) >= 1, true,
+    `claim summary should reflect the newly created claim (received: ${totalClaimsText})`);
 
   // Session must survive a browser reload via sessionStorage + /me.
   await page.reload({ waitUntil: "networkidle" });
