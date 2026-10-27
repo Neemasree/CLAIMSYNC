@@ -69,7 +69,9 @@ test("agent can create a claim with parameterized SQL and see the queue", async 
   assert.equal(response.body.claim.policyholder, "Jordan Lee");
   const insert = queries.find((item) => item.sql.includes("INSERT INTO claims"));
   assert.ok(insert);
-  assert.match(insert.sql, /VALUES \(\$1, \$2, \$3, \$4, \$5, \$6, \$7, \$8\)/);
+  assert.match(insert.sql, /assigned_to/);
+  assert.match(insert.sql, /candidate\.role = 'agent'/);
+  assert.match(insert.sql, /COUNT\(\*\)/);
   assert.equal(insert.values[7], users.agent.id);
 
   const queue = await request(app).get("/claims").set("Authorization", `Bearer ${token}`);
