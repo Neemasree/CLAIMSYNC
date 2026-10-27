@@ -212,8 +212,12 @@ export function createApp({
       if (description.length > 5000) return res.status(400).json({ message: "Description must be at most 5000 characters." });
       if (slaDueAt && (typeof slaDueAt !== "string" || Number.isNaN(Date.parse(slaDueAt)))) return res.status(400).json({ message: "SLA deadline must be a valid date." });
       const result = await pool.query(
-        "INSERT INTO claims (policyholder, policy_number, claim_type, description, claim_value, urgency, sla_due_at, created_by) " +
-        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
+        "INSERT INTO claims (policyholder, policy_number, claim_type, description, claim_value, urgency, sla_due_at, created_by, assigned_to) " +
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, " +
+        "(SELECT candidate.id FROM users candidate WHERE candidate.role = 'agent' " +
+        "ORDER BY (SELECT COUNT(*) FROM claims active_claim " +
+        "WHERE active_claim.assigned_to = candidate.id " +
+        "AND active_claim.status NOT IN ('approved', 'rejected', 'closed')), candidate.created_at ASC, candidate.id ASC LIMIT 1)) RETURNING *",
         [policyholder, policyNumber, claimType, description || null, claimValue, urgency, slaDueAt, user.sub]
       );
       return res.status(201).json({ message: "Claim created successfully.", claim: result.rows[0] });
