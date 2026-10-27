@@ -5,8 +5,8 @@ flowchart LR
   subgraph SERVER["🛡️ Express API"]
     CORS["CORS + JSON parsing"]
     AUTH["Signup / Login / Me<br/>bcrypt + signed JWT"]
-    CLAIMS["Claims API<br/>Create · List · Update status · Score"]
-    RULES["Validation + role checks<br/>Role scope + priority scoring"]
+    CLAIMS["Claims API<br/>Create · Score · Auto-assign · Status"]
+    RULES["Validation + role checks<br/>Priority scoring + least-loaded routing"]
   end
   subgraph DATA["🗄️ PostgreSQL"]
     USERS[("users<br/>profiles · password hashes · roles")]
