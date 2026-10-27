@@ -43,7 +43,7 @@ Insurance claim teams need to see what is urgent, understand who can act, and ke
 ### 🧾 Claims workspace
 - Create claims with policyholder, policy number, type, value, urgency, description, and optional SLA deadline
 - PostgreSQL persistence and validation
-- Priority ordering: critical → high → normal → low, then earliest SLA
+- Weighted priority score (0–100) combines urgency, claim value, and SLA proximity; highest score appears first
 - Summary counts for total, urgent, and open claims
 - Team leads/admins can update claim status
 - Deadline labels: overdue, due within 24 hours, on track
@@ -64,7 +64,7 @@ Insurance claim teams need to see what is urgent, understand who can act, and ke
 <td width="50%" valign="top">
 
 ### 🧭 Product direction
-- Priority scoring that can include urgency, claim value and SLA proximity
+- Automatic claim assignment and team routing
 - Claim assignment and team routing
 - Scheduled SLA breach detection
 - Notifications and full claim audit history
@@ -90,8 +90,8 @@ flowchart LR
   subgraph SERVER["🛡️ Express API"]
     CORS["CORS + JSON parsing"]
     AUTH["Signup / Login / Me<br/>bcrypt + signed JWT"]
-    CLAIMS["Claims API<br/>Create · List · Update status"]
-    RULES["Validation + role checks<br/>Agent · Team lead · Admin"]
+    CLAIMS["Claims API<br/>Create · List · Update status · Score"]
+    RULES["Validation + role checks<br/>Role scope + priority scoring"]
   end
 
   subgraph DATA["🗄️ PostgreSQL"]
@@ -143,7 +143,7 @@ flowchart TD
 
 ### Priority ordering
 
-Claims are currently sorted by urgency (critical first), then earliest SLA deadline, then creation time. **A weighted numeric score, automatic assignment, and a scheduled SLA worker are not implemented yet.**
+Claims are ranked using a transparent weighted score: urgency contributes 10–55 points, claim value contributes 0–20 points, and SLA proximity contributes 0–25 points. Open claims overdue on their SLA receive the strongest deadline boost. Ties are broken by earliest SLA and creation time. This is a deterministic triage heuristic, not a machine-learning model. Automatic assignment and a scheduled SLA worker are not implemented yet.
 
 ---
 
