@@ -178,9 +178,15 @@ export function createApp({
       const user = authenticatedUser(req);
       if (!user) return res.status(401).json({ message: "Please log in again." });
       const sharedQueue = user.role === "admin" || user.role === "team_lead";
-      const sql = "SELECT c.*, creator.name AS created_by_name FROM claims c JOIN users creator ON creator.id = c.created_by " +
+      const sql = "SELECT c.*, creator.name AS created_by_name, (" +
+        "CASE c.urgency WHEN 'critical' THEN 55 WHEN 'high' THEN 40 WHEN 'normal' THEN 25 ELSE 10 END + " +
+        "CASE WHEN c.claim_value >= 100000 THEN 20 WHEN c.claim_value >= 25000 THEN 12 WHEN c.claim_value >= 5000 THEN 6 ELSE 0 END + " +
+        "CASE WHEN c.sla_due_at IS NULL THEN 0 WHEN c.sla_due_at <= NOW() AND c.status NOT IN ('approved', 'rejected', 'closed') THEN 25 " +
+        "WHEN c.sla_due_at <= NOW() + INTERVAL '24 hours' AND c.status NOT IN ('approved', 'rejected', 'closed') THEN 20 " +
+        "WHEN c.sla_due_at <= NOW() + INTERVAL '72 hours' AND c.status NOT IN ('approved', 'rejected', 'closed') THEN 10 ELSE 0 END" +
+        ") AS priority_score FROM claims c JOIN users creator ON creator.id = c.created_by " +
         (sharedQueue ? "" : "WHERE c.created_by = $1 OR c.assigned_to = $1 ") +
-        "ORDER BY CASE c.urgency WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END, c.sla_due_at ASC NULLS LAST, c.created_at ASC";
+        "ORDER BY priority_score DESC, c.sla_due_at ASC NULLS LAST, c.created_at ASC";
       const result = sharedQueue ? await pool.query(sql) : await pool.query(sql, [user.sub]);
       return res.status(200).json({ claims: result.rows });
     } catch (error) { return next(error); }
