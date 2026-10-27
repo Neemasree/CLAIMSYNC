@@ -142,11 +142,12 @@ export default function Dashboard({ user, token, onLogout }) {
           ) : (
             <div className="claims-table-wrap">
               <table className="claims-table">
-                <thead><tr><th>Policyholder</th><th>Type / Policy</th><th>Value</th><th>Urgency</th><th>Status</th><th>SLA deadline</th>{["admin", "team_lead"].includes(user.role) && <th>Update</th>}</tr></thead>
+                <thead><tr><th>Policyholder</th><th>Type / Policy</th><th>Value</th><th>Priority score</th><th>Urgency</th><th>Status</th><th>SLA deadline</th>{["admin", "team_lead"].includes(user.role) && <th>Update</th>}</tr></thead>
                 <tbody>{claims.map((claim) => <tr key={claim.id}>
                   <td><strong>{claim.policyholder}</strong><small>{claim.created_by_name || "Claim owner"}</small></td>
                   <td>{claim.claim_type}<small>{claim.policy_number}</small></td>
                   <td>{money(claim.claim_value)}</td>
+                  <td><span className="claim-tag priority-score">{Number.isFinite(Number(claim.priority_score)) ? `${claim.priority_score}/100` : "—"}</span></td>
                   <td><span className={`claim-tag urgency-${claim.urgency}`}>{claim.urgency}</span></td>
                   <td><span className="claim-tag">{claim.status.replaceAll("_", " ")}</span></td>
                   <td>{claim.sla_due_at ? <><span>{new Date(claim.sla_due_at).toLocaleString()}</span><small className={new Date(claim.sla_due_at).getTime() < Date.now() && !["approved", "rejected", "closed"].includes(claim.status) ? "sla-overdue" : new Date(claim.sla_due_at).getTime() < Date.now() + 24 * 60 * 60 * 1000 && !["approved", "rejected", "closed"].includes(claim.status) ? "sla-due-soon" : "sla-on-track"}>{["approved", "rejected", "closed"].includes(claim.status) ? "Resolved" : new Date(claim.sla_due_at).getTime() < Date.now() ? "Overdue" : new Date(claim.sla_due_at).getTime() < Date.now() + 24 * 60 * 60 * 1000 ? "Due within 24 hours" : "On track"}</small></> : "Not set"}</td>
