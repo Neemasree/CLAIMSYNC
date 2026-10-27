@@ -45,7 +45,7 @@ Insurance claim teams need to see what is urgent, understand who can act, and ke
 - PostgreSQL persistence and validation
 - Weighted priority score (0–100) combines urgency, claim value, and SLA proximity; highest score appears first
 - Summary counts for total, urgent, and open claims
-- Team leads/admins can update claim status
+- New claims are automatically assigned to the least-loaded agent (open-claim count, then account age)
 - Deadline labels: overdue, due within 24 hours, on track
 
 </td>
@@ -64,7 +64,7 @@ Insurance claim teams need to see what is urgent, understand who can act, and ke
 <td width="50%" valign="top">
 
 ### 🧭 Product direction
-- Automatic claim assignment and team routing
+- Scheduled SLA breach detection and notifications
 - Claim assignment and team routing
 - Scheduled SLA breach detection
 - Notifications and full claim audit history
@@ -90,8 +90,8 @@ flowchart LR
   subgraph SERVER["🛡️ Express API"]
     CORS["CORS + JSON parsing"]
     AUTH["Signup / Login / Me<br/>bcrypt + signed JWT"]
-    CLAIMS["Claims API<br/>Create · List · Update status · Score"]
-    RULES["Validation + role checks<br/>Role scope + priority scoring"]
+    CLAIMS["Claims API<br/>Create · Score · Auto-assign · Status"]
+    RULES["Validation + role checks<br/>Priority scoring + least-loaded routing"]
   end
 
   subgraph DATA["🗄️ PostgreSQL"]
@@ -143,7 +143,7 @@ flowchart TD
 
 ### Priority ordering
 
-Claims are ranked using a transparent weighted score: urgency contributes 10–55 points, claim value contributes 0–20 points, and SLA proximity contributes 0–25 points. Open claims overdue on their SLA receive the strongest deadline boost. Ties are broken by earliest SLA and creation time. This is a deterministic triage heuristic, not a machine-learning model. Automatic assignment and a scheduled SLA worker are not implemented yet.
+Claims are ranked using a transparent weighted score: urgency contributes 10–55 points, claim value contributes 0–20 points, and SLA proximity contributes 0–25 points. Open claims overdue on their SLA receive the strongest deadline boost. Ties are broken by earliest SLA and creation time. This is a deterministic triage heuristic, not a machine-learning model. Automatic assignment now selects the least-loaded agent when an eligible agent account exists. A scheduled SLA worker and notification delivery are not implemented yet.
 
 ---
 
