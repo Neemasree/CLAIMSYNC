@@ -75,6 +75,10 @@ test("agent can create a claim with parameterized SQL and see the queue", async 
   const queue = await request(app).get("/claims").set("Authorization", `Bearer ${token}`);
   assert.equal(queue.status, 200);
   assert.equal(queue.body.claims[0].urgency, "critical");
+  const queueQuery = queries.find((item) => item.sql.includes("FROM claims c JOIN users"));
+  assert.ok(queueQuery.sql.includes("AS priority_score"));
+  assert.match(queueQuery.sql, /ORDER BY priority_score DESC/);
+  assert.match(queueQuery.sql, /INTERVAL '24 hours'/);
 });
 
 test("claim creation validates urgency and value before database writes", async () => {
