@@ -47,6 +47,8 @@ Insurance claim teams need to see what is urgent, understand who can act, and ke
 - Summary counts for total, urgent, and open claims
 - New claims are automatically assigned to the least-loaded agent (open-claim count, then account age)
 - Deadline labels: overdue, due within 24 hours, on track
+- Append-only status-change audit trail with actor and timestamp
+- Role-scoped claim history endpoint
 
 </td>
 </tr>
@@ -90,13 +92,14 @@ flowchart LR
   subgraph SERVER["🛡️ Express API"]
     CORS["CORS + JSON parsing"]
     AUTH["Signup / Login / Me<br/>bcrypt + signed JWT"]
-    CLAIMS["Claims API<br/>Create · Score · Auto-assign · Status"]
+    CLAIMS["Claims API<br/>Create · Score · Auto-assign · Status · History"]
     RULES["Validation + role checks<br/>Priority scoring + least-loaded routing"]
   end
 
   subgraph DATA["🗄️ PostgreSQL"]
     USERS[("users<br/>profiles · password hashes · roles")]
     CLAIMDB[("claims<br/>policy · value · urgency · status · SLA")]
+    AUDIT[("claim_audit<br/>actor · previous/new status · timestamp")]
   end
 
   subgraph QUALITY["🧪 GitHub Actions"]
@@ -111,6 +114,7 @@ flowchart LR
   CLAIMS --> RULES
   AUTH <--> USERS
   RULES <--> CLAIMDB
+  RULES --> AUDIT
   API_TEST -.-> SERVER
   E2E -.-> UI
   E2E -.-> SERVER
@@ -143,7 +147,7 @@ flowchart TD
 
 ### Priority ordering
 
-Claims are ranked using a transparent weighted score: urgency contributes 10–55 points, claim value contributes 0–20 points, and SLA proximity contributes 0–25 points. Open claims overdue on their SLA receive the strongest deadline boost. Ties are broken by earliest SLA and creation time. This is a deterministic triage heuristic, not a machine-learning model. Automatic assignment now selects the least-loaded agent when an eligible agent account exists. A scheduled SLA worker and notification delivery are not implemented yet.
+Claims are ranked using a transparent weighted score: urgency contributes 10–55 points, claim value contributes 0–20 points, and SLA proximity contributes 0–25 points. Open claims overdue on their SLA receive the strongest deadline boost. Ties are broken by earliest SLA and creation time. This is a deterministic triage heuristic, not a machine-learning model. Automatic assignment now selects the least-loaded agent when an eligible agent account exists. Status changes are written to an append-only audit table and can be retrieved through the role-scoped history endpoint. Scheduled SLA monitoring and notification delivery are not implemented yet.
 
 ---
 
@@ -225,7 +229,8 @@ All claim routes require a valid `Authorization: Bearer <token>` header.
 | `GET` | `/me` | Validate token and return safe user profile |
 | `GET` | `/claims` | List claims within the caller's role scope |
 | `POST` | `/claims` | Validate and create a claim |
-| `PATCH` | `/claims/:id/status` | Update status (team leads/admins only) |
+| `PATCH` | `/claims/:id/status` | Update status and record audit event (team leads/admins only) |
+| `GET` | `/claims/:id/history` | Read role-scoped claim activity history |
 
 ### Claim statuses
 
@@ -272,7 +277,7 @@ Check the [latest workflow result](https://github.com/Neemasree/CLAIMSYNC/action
 - [ ] Automated claim assignment and team routing
 - [ ] Configurable weighted priority score (urgency + value + SLA proximity)
 - [ ] Scheduled SLA breach detection and notification delivery
-- [ ] Full claim status history and audit trail
+- [x] Claim status history and audit trail
 - [ ] Production deployment and live-environment verification
 
 ## 🔒 Security notes
