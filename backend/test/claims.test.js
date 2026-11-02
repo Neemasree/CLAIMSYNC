@@ -34,7 +34,8 @@ function setup() {
         return { rows: [{ ...sampleClaim, policyholder: values[0], policy_number: values[1], claim_type: values[2], description: values[3], claim_value: String(values[4]), urgency: values[5], sla_due_at: values[6], created_by: values[7] }] };
       }
       if (sql.includes("FROM claims")) return { rows: [sampleClaim] };
-      if (sql.includes("UPDATE claims")) return { rows: [{ ...sampleClaim, status: values[0] }] };
+      if (sql.includes("WITH previous AS")) return { rows: [{ ...sampleClaim, status: values[0], audit_entries_written: "1" }] };
+      if (sql.includes("FROM claim_audit")) return { rows: [{ id: "44444444-4444-4444-8444-444444444444", claim_id: values[0], action: "status_changed", previous_status: "submitted", new_status: "in_review", actor_name: "QA Lead" }] };
       return { rows: [] };
     },
   };
@@ -110,4 +111,28 @@ test("only team leads and admins can update claim status", async () => {
     .set("Authorization", `Bearer ${leadToken}`).send({ status: "in_review" });
   assert.equal(allowed.status, 200);
   assert.equal(allowed.body.claim.status, "in_review");
+});
+
+
+test("team lead status changes are written to the claim audit trail", async () => {
+  const { app, queries } = setup();
+  const leadToken = await tokenFor(app, users.lead.email);
+  const response = await request(app).patch(`/claims/${sampleClaim.id}/status`)
+    .set("Authorization", `Bearer ${leadToken}`).send({ status: "in_review" });
+  assert.equal(response.status, 200);
+  assert.equal(response.body.claim.audit_entries_written, "1");
+  const statement = queries.find((item) => item.sql.includes("WITH previous AS"));
+  assert.ok(statement.sql.includes("INSERT INTO claim_audit"));
+  assert.equal(statement.values[2], users.lead.id);
+});
+
+test("agents can read history only for claims in their scope", async () => {
+  const { app, queries } = setup();
+  const agentToken = await tokenFor(app, users.agent.email);
+  const response = await request(app).get(`/claims/${sampleClaim.id}/history`)
+    .set("Authorization", `Bearer ${agentToken}`);
+  assert.equal(response.status, 200);
+  assert.equal(response.body.history[0].new_status, "in_review");
+  const historyQuery = queries.find((item) => item.sql.includes("FROM claim_audit"));
+  assert.match(historyQuery.sql, /c\.created_by = \$2 OR c\.assigned_to = \$2/);
 });
