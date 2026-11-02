@@ -237,9 +237,35 @@ export function createApp({
       const allowedStatuses = ["submitted", "in_review", "awaiting_information", "approved", "rejected", "closed"];
       if (!/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ message: "Invalid claim ID." });
       if (!allowedStatuses.includes(status)) return res.status(400).json({ message: "Choose a valid claim status." });
-      const result = await pool.query("UPDATE claims SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *", [status, id]);
+      const result = await pool.query(
+        "WITH previous AS (SELECT id, status FROM claims WHERE id = $2 FOR UPDATE), " +
+        "updated AS (UPDATE claims c SET status = $1, updated_at = NOW() FROM previous p WHERE c.id = p.id RETURNING c.*), " +
+        "logged AS (INSERT INTO claim_audit (claim_id, actor_id, action, previous_status, new_status) " +
+        "SELECT u.id, $3, 'status_changed', p.status, u.status FROM updated u JOIN previous p ON p.id = u.id RETURNING id) " +
+        "SELECT updated.*, (SELECT COUNT(*) FROM logged) AS audit_entries_written FROM updated",
+        [status, id, user.sub]
+      );
       if (!result.rows[0]) return res.status(404).json({ message: "Claim not found." });
-      return res.status(200).json({ message: "Claim status updated successfully.", claim: result.rows[0] });
+      return res.status(200).json({ message: "Claim status updated and audit recorded.", claim: result.rows[0] });
+    } catch (error) { return next(error); }
+  });
+
+  app.get("/claims/:id/history", async (req, res, next) => {
+    try {
+      const user = authenticatedUser(req);
+      if (!user) return res.status(401).json({ message: "Please log in again." });
+      const id = req.params.id;
+      if (!/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ message: "Invalid claim ID." });
+      const sharedQueue = user.role === "admin" || user.role === "team_lead";
+      const result = await pool.query(
+        "SELECT a.id, a.claim_id, a.action, a.previous_status, a.new_status, a.created_at, actor.name AS actor_name " +
+        "FROM claim_audit a LEFT JOIN users actor ON actor.id = a.actor_id " +
+        "JOIN claims c ON c.id = a.claim_id WHERE a.claim_id = $1 " +
+        (sharedQueue ? "" : "AND (c.created_by = $2 OR c.assigned_to = $2) ") +
+        "ORDER BY a.created_at DESC",
+        sharedQueue ? [id] : [id, user.sub]
+      );
+      return res.status(200).json({ history: result.rows });
     } catch (error) { return next(error); }
   });
 
