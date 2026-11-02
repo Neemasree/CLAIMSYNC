@@ -33,3 +33,17 @@ CREATE TABLE IF NOT EXISTS claims (
 CREATE INDEX IF NOT EXISTS idx_claims_priority ON claims (urgency, sla_due_at, created_at);
 CREATE INDEX IF NOT EXISTS idx_claims_created_by ON claims (created_by);
 CREATE INDEX IF NOT EXISTS idx_claims_assigned_to ON claims (assigned_to);
+
+
+-- Append-only claim activity history for traceable operational changes.
+CREATE TABLE IF NOT EXISTS claim_audit (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  claim_id UUID NOT NULL REFERENCES claims(id) ON DELETE CASCADE,
+  actor_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  action VARCHAR(40) NOT NULL CHECK (action IN ('claim_created', 'status_changed')),
+  previous_status VARCHAR(24),
+  new_status VARCHAR(24),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_claim_audit_claim_created
+  ON claim_audit (claim_id, created_at DESC);
