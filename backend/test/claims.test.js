@@ -33,8 +33,8 @@ function setup() {
       if (sql.includes("INSERT INTO claims")) {
         return { rows: [{ ...sampleClaim, policyholder: values[0], policy_number: values[1], claim_type: values[2], description: values[3], claim_value: String(values[4]), urgency: values[5], sla_due_at: values[6], created_by: values[7] }] };
       }
-      if (sql.includes("FROM claims")) return { rows: [sampleClaim] };
       if (sql.includes("WITH previous AS")) return { rows: [{ ...sampleClaim, status: values[0], audit_entries_written: "1" }] };
+      if (sql.includes("FROM claims")) return { rows: [sampleClaim] };
       if (sql.includes("FROM claim_audit")) return { rows: [{ id: "44444444-4444-4444-8444-444444444444", claim_id: values[0], action: "status_changed", previous_status: "submitted", new_status: "in_review", actor_name: "QA Lead" }] };
       return { rows: [] };
     },
