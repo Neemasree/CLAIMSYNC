@@ -21,7 +21,7 @@ From claim intake to triage and status updates — a role-aware workspace design
 
 Insurance claim teams need to see what is urgent, understand who can act, and keep claim progress clear. CLAIMSYNC provides an authenticated claims workspace with validated intake, a priority-ordered queue, role-aware access, and visible SLA deadlines.
 
-> **Current focus:** make the claim workflow real before adding automated assignment, scheduled SLA monitoring, and notification delivery.
+> **Current focus:** deliver traceable claim intake and status changes, role-scoped activity history, and reliable operational checks.
 
 ## ✨ Current features
 
@@ -47,8 +47,8 @@ Insurance claim teams need to see what is urgent, understand who can act, and ke
 - Summary counts for total, urgent, and open claims
 - New claims are automatically assigned to the least-loaded agent (open-claim count, then account age)
 - Deadline labels: overdue, due within 24 hours, on track
-- Append-only status-change audit trail with actor and timestamp
-- Role-scoped claim history endpoint
+- Append-only claim creation and status-change audit trail with actor and timestamp
+- Role-scoped claim history API, visible from each queue row
 
 </td>
 </tr>
@@ -66,12 +66,10 @@ Insurance claim teams need to see what is urgent, understand who can act, and ke
 <td width="50%" valign="top">
 
 ### 🧭 Product direction
-- Scheduled SLA breach detection and notifications
-- Claim assignment and team routing
-- Scheduled SLA breach detection
-- Notifications and full claim audit history
+- Scheduled SLA breach detection and durable in-app notifications
+- Configurable team routing and assignment policies
 
-These are planned extensions, not all implemented today.
+These are planned extensions; the current queue already performs least-loaded agent assignment.
 
 </td>
 </tr>
@@ -184,7 +182,7 @@ Create a database named `claimsync`, then apply the schema from the repository r
 psql -d claimsync -v ON_ERROR_STOP=1 -f backend/schema.sql
 ```
 
-The schema creates the `users` and `claims` tables and their indexes.
+The schema creates the `users`, `claims`, and `claim_audit` tables and their indexes.
 
 ### 3. Start the API
 
@@ -274,8 +272,8 @@ Check the [latest workflow result](https://github.com/Neemasree/CLAIMSYNC/action
 - [x] Role-protected status updates
 - [x] SLA deadline indicators in the dashboard
 - [x] API and browser test coverage for the implemented flows
-- [ ] Automated claim assignment and team routing
-- [ ] Configurable weighted priority score (urgency + value + SLA proximity)
+- [x] Least-loaded automatic agent assignment
+- [x] Weighted priority score (urgency + value + SLA proximity)
 - [ ] Scheduled SLA breach detection and notification delivery
 - [x] Claim status history and audit trail
 - [ ] Production deployment and live-environment verification
