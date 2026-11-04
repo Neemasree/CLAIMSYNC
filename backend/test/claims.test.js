@@ -73,6 +73,8 @@ test("agent can create a claim with parameterized SQL and see the queue", async 
   assert.match(insert.sql, /assigned_to/);
   assert.match(insert.sql, /candidate\.role = 'agent'/);
   assert.match(insert.sql, /COUNT\(\*\)/);
+  assert.match(insert.sql, /INSERT INTO claim_audit/);
+  assert.match(insert.sql, /'claim_created'/);
   assert.equal(insert.values[7], users.agent.id);
 
   const queue = await request(app).get("/claims").set("Authorization", `Bearer ${token}`);
