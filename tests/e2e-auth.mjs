@@ -51,6 +51,9 @@ try {
   await page.getByRole("status").filter({ hasText: "Claim created successfully" }).waitFor();
   await page.getByText(policyNumber).waitFor();
   await page.getByText("QA Policyholder").waitFor();
+  await page.getByRole("button", { name: "View history" }).click();
+  await page.getByText("Claim created", { exact: true }).waitFor();
+  await page.getByText(email, { exact: false }).waitFor();
   const totalClaimsText = await page.locator(".claims-metrics article").first().locator("strong").innerText();
   assert.equal(Number(totalClaimsText) >= 1, true,
     `claim summary should reflect the newly created claim (received: ${totalClaimsText})`);
