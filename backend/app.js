@@ -212,15 +212,18 @@ export function createApp({
       if (description.length > 5000) return res.status(400).json({ message: "Description must be at most 5000 characters." });
       if (slaDueAt && (typeof slaDueAt !== "string" || Number.isNaN(Date.parse(slaDueAt)))) return res.status(400).json({ message: "SLA deadline must be a valid date." });
       const result = await pool.query(
-        "INSERT INTO claims (policyholder, policy_number, claim_type, description, claim_value, urgency, sla_due_at, created_by, assigned_to) " +
+        "WITH inserted AS (INSERT INTO claims (policyholder, policy_number, claim_type, description, claim_value, urgency, sla_due_at, created_by, assigned_to) " +
         "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, " +
         "(SELECT candidate.id FROM users candidate WHERE candidate.role = 'agent' " +
         "ORDER BY (SELECT COUNT(*) FROM claims active_claim " +
         "WHERE active_claim.assigned_to = candidate.id " +
-        "AND active_claim.status NOT IN ('approved', 'rejected', 'closed')), candidate.created_at ASC, candidate.id ASC LIMIT 1)) RETURNING *",
+        "AND active_claim.status NOT IN ('approved', 'rejected', 'closed')), candidate.created_at ASC, candidate.id ASC LIMIT 1)) RETURNING *), " +
+        "logged AS (INSERT INTO claim_audit (claim_id, actor_id, action, previous_status, new_status) " +
+        "SELECT id, $8, 'claim_created', NULL, status FROM inserted RETURNING id) " +
+        "SELECT inserted.*, (SELECT COUNT(*) FROM logged) AS audit_entries_written FROM inserted",
         [policyholder, policyNumber, claimType, description || null, claimValue, urgency, slaDueAt, user.sub]
       );
-      return res.status(201).json({ message: "Claim created successfully.", claim: result.rows[0] });
+      return res.status(201).json({ message: "Claim created and audit recorded.", claim: result.rows[0] });
     } catch (error) {
       if (error.code === "23505") return res.status(409).json({ message: "A claim with this policy number already exists." });
       return next(error);
