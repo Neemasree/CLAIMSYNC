@@ -11,7 +11,7 @@ flowchart LR
   subgraph DATA["🗄️ PostgreSQL"]
     USERS[("users<br/>profiles · password hashes · roles")]
     CLAIMDB[("claims<br/>policy · value · urgency · status · SLA")]
-    AUDIT[("claim_audit<br/>actor · old/new status · timestamp")]
+    AUDIT[("claim_audit<br/>actor · claim creation/status changes · timestamp")]
   end
   subgraph QUALITY["🧪 GitHub Actions"]
     API_TEST["API tests"]
