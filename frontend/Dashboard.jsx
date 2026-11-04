@@ -9,6 +9,8 @@ export default function Dashboard({ user, token, onLogout }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [historyByClaim, setHistoryByClaim] = useState({});
+  const [historyLoading, setHistoryLoading] = useState({});
   const [form, setForm] = useState({
     policyholder: "", policyNumber: "", claimType: "Health", claimValue: "0",
     urgency: "normal", slaDueAt: "", description: "",
@@ -61,6 +63,27 @@ export default function Dashboard({ user, token, onLogout }) {
         : requestError.message || "Unable to create claim.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function toggleHistory(claim) {
+    if (historyByClaim[claim.id]) {
+      setHistoryByClaim((current) => ({ ...current, [claim.id]: null }));
+      return;
+    }
+    setHistoryLoading((current) => ({ ...current, [claim.id]: true }));
+    setError("");
+    try {
+      const response = await fetch(`${API_BASE_URL}/claims/${claim.id}/history`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || "Unable to load claim history.");
+      setHistoryByClaim((current) => ({ ...current, [claim.id]: data.history || [] }));
+    } catch (requestError) {
+      setError(requestError instanceof TypeError ? "Cannot reach the claims API. Check the backend connection." : requestError.message || "Unable to load claim history.");
+    } finally {
+      setHistoryLoading((current) => ({ ...current, [claim.id]: false }));
     }
   }
 
@@ -142,8 +165,8 @@ export default function Dashboard({ user, token, onLogout }) {
           ) : (
             <div className="claims-table-wrap">
               <table className="claims-table">
-                <thead><tr><th>Policyholder</th><th>Type / Policy</th><th>Value</th><th>Priority score</th><th>Urgency</th><th>Status</th><th>SLA deadline</th>{["admin", "team_lead"].includes(user.role) && <th>Update</th>}</tr></thead>
-                <tbody>{claims.map((claim) => <tr key={claim.id}>
+                <thead><tr><th>Policyholder</th><th>Type / Policy</th><th>Value</th><th>Priority score</th><th>Urgency</th><th>Status</th><th>SLA deadline</th><th>Activity</th>{["admin", "team_lead"].includes(user.role) && <th>Update</th>}</tr></thead>
+                <tbody>{claims.map((claim) => <><tr key={claim.id}>
                   <td><strong>{claim.policyholder}</strong><small>{claim.created_by_name || "Claim owner"}</small></td>
                   <td>{claim.claim_type}<small>{claim.policy_number}</small></td>
                   <td>{money(claim.claim_value)}</td>
@@ -151,8 +174,9 @@ export default function Dashboard({ user, token, onLogout }) {
                   <td><span className={`claim-tag urgency-${claim.urgency}`}>{claim.urgency}</span></td>
                   <td><span className="claim-tag">{claim.status.replaceAll("_", " ")}</span></td>
                   <td>{claim.sla_due_at ? <><span>{new Date(claim.sla_due_at).toLocaleString()}</span><small className={new Date(claim.sla_due_at).getTime() < Date.now() && !["approved", "rejected", "closed"].includes(claim.status) ? "sla-overdue" : new Date(claim.sla_due_at).getTime() < Date.now() + 24 * 60 * 60 * 1000 && !["approved", "rejected", "closed"].includes(claim.status) ? "sla-due-soon" : "sla-on-track"}>{["approved", "rejected", "closed"].includes(claim.status) ? "Resolved" : new Date(claim.sla_due_at).getTime() < Date.now() ? "Overdue" : new Date(claim.sla_due_at).getTime() < Date.now() + 24 * 60 * 60 * 1000 ? "Due within 24 hours" : "On track"}</small></> : "Not set"}</td>
+                  <td><button className="history-toggle" type="button" onClick={() => toggleHistory(claim)} disabled={historyLoading[claim.id]}>{historyLoading[claim.id] ? "Loading…" : historyByClaim[claim.id] ? "Hide history" : "View history"}</button></td>
                   {["admin", "team_lead"].includes(user.role) && <td><select aria-label={`Status for ${claim.policyholder}`} value={claim.status} onChange={(e) => updateStatus(claim, e.target.value)}><option value="submitted">Submitted</option><option value="in_review">In review</option><option value="awaiting_information">Awaiting information</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="closed">Closed</option></select></td>}
-                </tr>)}</tbody>
+                </tr>{historyByClaim[claim.id] && <tr className="history-row" key={`${claim.id}-history`}><td colSpan={["admin", "team_lead"].includes(user.role) ? 9 : 8}><div className="claim-history"><strong>Claim activity</strong>{historyByClaim[claim.id].length ? <ol>{historyByClaim[claim.id].map((entry) => <li key={entry.id}><span>{entry.action === "claim_created" ? "Claim created" : `Status changed: ${(entry.previous_status || "—").replaceAll("_", " ")} → ${(entry.new_status || "").replaceAll("_", " ")}`}</span><small>{entry.actor_name || "Former user"} · {new Date(entry.created_at).toLocaleString()}</small></li>)}</ol> : <p>No activity has been recorded yet.</p>}</div></td></tr>}</>)}</tbody>
               </table>
             </div>
           )}
