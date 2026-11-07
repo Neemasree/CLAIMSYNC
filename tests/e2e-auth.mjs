@@ -52,6 +52,15 @@ try {
   await page.getByRole("status").filter({ hasText: "Claim created successfully" }).waitFor();
   await page.getByText(policyNumber).waitFor();
   await page.getByText("QA Policyholder").waitFor();
+
+  // Search and filter the live claims queue without changing server data.
+  await page.getByLabel("Search claims").fill(policyNumber);
+  await page.locator("#claim-urgency-filter").selectOption("critical");
+  await page.getByText("Showing 1 of 1 claims").waitFor();
+  await page.getByLabel("Search claims").fill("no-such-policy");
+  await page.getByText("No claims match these filters.").waitFor();
+  await page.getByLabel("Search claims").fill("");
+  await page.locator("#claim-urgency-filter").selectOption("all");
   await page.getByRole("button", { name: "View history" }).click();
   await page.getByText("Claim created", { exact: true }).waitFor();
   await page.getByText(email, { exact: false }).waitFor();
