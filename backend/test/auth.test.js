@@ -111,8 +111,9 @@ test("GET /me rejects a token whose signature has been tampered with", async () 
   assert.equal(login.status, 200);
 
   const token = login.body.token;
-  const replacement = token.endsWith("a") ? "b" : "a";
-  const tamperedToken = token.slice(0, -1) + replacement;
+  const [header, payload, signature] = token.split(".");
+  const replacement = signature[0] === "a" ? "b" : "a";
+  const tamperedToken = `${header}.${payload}.${replacement}${signature.slice(1)}`;
   const response = await request(app).get("/me")
     .set("Authorization", `Bearer ${tamperedToken}`);
 
