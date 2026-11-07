@@ -335,8 +335,17 @@ export function createApp({
   });
 
   app.use((error, _req, res, _next) => {
+    if (error.status === 400 && error.type === "entity.parse.failed") {
+      return res.status(400).json({ message: "Request body must contain valid JSON." });
+    }
+    if (error.status === 413 && error.type === "entity.too.large") {
+      return res.status(413).json({ message: "Request body is too large." });
+    }
+    if (error.status === 403) {
+      return res.status(403).json({ message: "This origin is not allowed." });
+    }
     console.error(error);
-    res.status(error.status === 403 ? 403 : 500).json({ message: error.status === 403 ? "This origin is not allowed." : "Something went wrong. Please try again." });
+    return res.status(500).json({ message: "Something went wrong. Please try again." });
   });
 
   return app;
