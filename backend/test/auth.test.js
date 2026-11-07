@@ -11,7 +11,7 @@ const user = {
   password_hash: "stored-hash",
 };
 
-function makeApp() {
+function makeApp(jwtSecret = "test-only-jwt-secret") {
   const pool = {
     async query(sql) {
       if (sql.includes("WHERE email = $1")) return { rows: [user] };
@@ -25,7 +25,7 @@ function makeApp() {
     async hash(value) { return `hash-${value}`; },
     async compare(value, hash) { return value === "correct-horse" && hash === "stored-hash"; },
   };
-  return createApp({ pool, passwordHasher, jwtSecret: "test-only-jwt-secret" });
+  return createApp({ pool, passwordHasher, jwtSecret });
 }
 
 test("POST /login issues a JWT for valid credentials without exposing the password hash", async () => {
@@ -89,4 +89,49 @@ test("CORS rejects browser origins outside the configured allowlist", async () =
     if (previous === undefined) delete process.env.FRONTEND_ORIGINS;
     else process.env.FRONTEND_ORIGINS = previous;
   }
+});
+
+
+test("POST /login rejects missing or malformed credentials before querying users", async () => {
+  const app = makeApp();
+
+  for (const body of [{}, { email: "   ", password: "secret" }, { email: "neema@example.com" }, { email: 42, password: "secret" }]) {
+    const response = await request(app).post("/login").send(body);
+    assert.equal(response.status, 400);
+    assert.equal(response.body.message, "Email and password are required.");
+  }
+});
+
+test("GET /me rejects a token whose signature has been tampered with", async () => {
+  const app = makeApp();
+  const login = await request(app).post("/login").send({
+    email: user.email,
+    password: "correct-horse",
+  });
+  assert.equal(login.status, 200);
+
+  const token = login.body.token;
+  const replacement = token.endsWith("a") ? "b" : "a";
+  const tamperedToken = token.slice(0, -1) + replacement;
+  const response = await request(app).get("/me")
+    .set("Authorization", `Bearer ${tamperedToken}`);
+
+  assert.equal(response.status, 401);
+  assert.equal(response.body.message, "Please log in again.");
+});
+
+test("GET /me rejects a token signed with a different JWT secret", async () => {
+  const issuingApp = makeApp("issuer-secret");
+  const verifyingApp = makeApp("different-verifier-secret");
+  const login = await request(issuingApp).post("/login").send({
+    email: user.email,
+    password: "correct-horse",
+  });
+  assert.equal(login.status, 200);
+
+  const response = await request(verifyingApp).get("/me")
+    .set("Authorization", `Bearer ${login.body.token}`);
+
+  assert.equal(response.status, 401);
+  assert.equal(response.body.message, "Please log in again.");
 });
