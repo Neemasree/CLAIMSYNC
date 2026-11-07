@@ -136,3 +136,13 @@ test("GET /me rejects a token signed with a different JWT secret", async () => {
   assert.equal(response.status, 401);
   assert.equal(response.body.message, "Please log in again.");
 });
+
+
+test("malformed JSON bodies return a safe 400 response", async () => {
+  const response = await request(makeApp())
+    .post("/login")
+    .set("Content-Type", "application/json")
+    .send('{"email":');
+  assert.equal(response.status, 400);
+  assert.deepEqual(response.body, { message: "Request body must contain valid JSON." });
+});
