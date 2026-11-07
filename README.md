@@ -87,6 +87,7 @@ This diagram is kept in sync with the **implemented** application. When routes, 
 flowchart LR
   subgraph CLIENT["🖥️ Client"]
     UI["React + Vite<br/>Signup · Login · Claims dashboard"]
+    NGINX["Nginx<br/>Static hosting · /api reverse proxy"]
   end
 
   subgraph SERVER["🛡️ Express API"]
@@ -111,23 +112,28 @@ flowchart LR
     DOCKER["Compose validation + image builds"]
   end
 
-  UI -->|"HTTPS + same-origin /api"| CORS
+  UI --> NGINX
+  NGINX -->|"same-origin /api"| CORS
   CORS --> AUTH
   CORS --> CLAIMS
   CLAIMS --> RULES
   AUTH <--> USERS
   RULES <--> CLAIMDB
   RULES --> AUDIT
+  SLA --> CLAIMDB
+  SLA --> NOTIFY
   API_TEST -.-> SERVER
   E2E -.-> UI
   E2E -.-> SERVER
   BUILD -.-> UI
+  DOCKER -.-> NGINX
+  DOCKER -.-> SERVER
 
   classDef client fill:#DBEAFE,stroke:#2563EB,color:#1E3A8A,stroke-width:2px
   classDef api fill:#DCFCE7,stroke:#16A34A,color:#14532D,stroke-width:2px
   classDef data fill:#E0E7FF,stroke:#4F46E5,color:#312E81,stroke-width:2px
   classDef quality fill:#FEF3C7,stroke:#D97706,color:#78350F,stroke-width:2px
-  class UI client
+  class UI,NGINX client
   class CORS,AUTH,CLAIMS,RULES,SLA api
   class USERS,CLAIMDB,AUDIT,NOTIFY data
   class API_TEST,E2E,BUILD,DOCKER quality
