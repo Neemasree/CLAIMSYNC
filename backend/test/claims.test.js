@@ -180,3 +180,40 @@ test("notification read endpoint validates IDs and prevents cross-user updates",
   assert.match(update.sql, /WHERE id = \$1 AND user_id = \$2/);
   assert.equal(update.values[1], users.agent.id);
 });
+
+
+test("claim routes reject malformed UUIDs before database queries", async () => {
+  const { app, queries } = setup();
+  const token = await tokenFor(app, users.lead.email);
+  const queryCountAfterLogin = queries.length;
+  const malformedId = "------------------------------------";
+
+  const history = await request(app).get(`/claims/${malformedId}/history`)
+    .set("Authorization", `Bearer ${token}`);
+  const status = await request(app).patch(`/claims/${malformedId}/status`)
+    .set("Authorization", `Bearer ${token}`).send({ status: "in_review" });
+  const notification = await request(app).patch(`/notifications/${malformedId}/read`)
+    .set("Authorization", `Bearer ${token}`);
+
+  assert.equal(history.status, 400);
+  assert.equal(status.status, 400);
+  assert.equal(notification.status, 400);
+  assert.equal(queries.length, queryCountAfterLogin);
+});
+
+test("claim creation rejects non-text descriptions and non-numeric claim values", async () => {
+  const { app, queries } = setup();
+  const token = await tokenFor(app, users.agent.email);
+  const before = queries.filter((item) => item.sql.includes("INSERT INTO claims")).length;
+
+  const badDescription = await request(app).post("/claims")
+    .set("Authorization", `Bearer ${token}`)
+    .send({ policyholder: "Jordan Lee", policyNumber: "POL-126", claimType: "Health", claimValue: 1, description: { unexpected: true } });
+  const badValue = await request(app).post("/claims")
+    .set("Authorization", `Bearer ${token}`)
+    .send({ policyholder: "Jordan Lee", policyNumber: "POL-127", claimType: "Health", claimValue: true });
+
+  assert.equal(badDescription.status, 400);
+  assert.equal(badValue.status, 400);
+  assert.equal(queries.filter((item) => item.sql.includes("INSERT INTO claims")).length, before);
+});
