@@ -298,7 +298,7 @@ GitHub Actions runs four jobs on pushes and pull requests to `main`:
 1. **Test Express API** — API behavior and validation.
 2. **Build React frontend** — production bundle.
 3. **Browser end-to-end auth flow** — starts PostgreSQL, applies the schema, and exercises the browser flow with Playwright.
-4. **Validate Docker deployment** — validates the Compose configuration and builds both production images.
+4. **Validate Docker deployment** — validates Compose, builds both production images, starts PostgreSQL/API/Nginx, and smoke-tests the frontend and proxied API.
 
 Check the [latest workflow result](https://github.com/Neemasree/CLAIMSYNC/actions) for the authoritative pass/fail status. A CI pass applies to the tested commit and CI environment; it does not prove that a production deployment is configured or healthy.
 
