@@ -173,6 +173,47 @@ export function createApp({
     return match && jwtSecret ? verifyToken(match[1], jwtSecret) : null;
   }
 
+
+  app.get("/notifications", async (req, res, next) => {
+    try {
+      const user = authenticatedUser(req);
+      if (!user) return res.status(401).json({ message: "Please log in again." });
+      const result = await pool.query(
+        "SELECT n.id, n.claim_id, n.type, n.message, n.created_at, n.read_at, c.policy_number, c.policyholder " +
+        "FROM notifications n JOIN claims c ON c.id = n.claim_id WHERE n.user_id = $1 " +
+        "ORDER BY n.created_at DESC LIMIT 50",
+        [user.sub]
+      );
+      return res.status(200).json({ notifications: result.rows, unreadCount: result.rows.filter((item) => !item.read_at).length });
+    } catch (error) { return next(error); }
+  });
+
+  app.patch("/notifications/:id/read", async (req, res, next) => {
+    try {
+      const user = authenticatedUser(req);
+      if (!user) return res.status(401).json({ message: "Please log in again." });
+      if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return res.status(400).json({ message: "Invalid notification ID." });
+      const result = await pool.query(
+        "UPDATE notifications SET read_at = COALESCE(read_at, NOW()) WHERE id = $1 AND user_id = $2 RETURNING id, read_at",
+        [req.params.id, user.sub]
+      );
+      if (!result.rows[0]) return res.status(404).json({ message: "Notification not found." });
+      return res.status(200).json({ notification: result.rows[0] });
+    } catch (error) { return next(error); }
+  });
+
+  app.patch("/notifications/read-all", async (req, res, next) => {
+    try {
+      const user = authenticatedUser(req);
+      if (!user) return res.status(401).json({ message: "Please log in again." });
+      const result = await pool.query(
+        "UPDATE notifications SET read_at = NOW() WHERE user_id = $1 AND read_at IS NULL RETURNING id",
+        [user.sub]
+      );
+      return res.status(200).json({ updated: result.rowCount ?? result.rows.length });
+    } catch (error) { return next(error); }
+  });
+
   app.get("/claims", async (req, res, next) => {
     try {
       const user = authenticatedUser(req);
