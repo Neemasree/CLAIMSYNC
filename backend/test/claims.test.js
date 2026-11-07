@@ -154,6 +154,18 @@ test("notifications require authentication and are scoped to the signed-in user"
   assert.equal(query.values[0], users.agent.id);
 });
 
+test("notification read-all endpoint only updates the authenticated user's unread notifications", async () => {
+  const { app, queries } = setup();
+  const token = await tokenFor(app, users.agent.email);
+  const response = await request(app).patch("/notifications/read-all")
+    .set("Authorization", `Bearer ${token}`);
+  assert.equal(response.status, 200);
+  const update = queries.find((item) => item.sql.includes("UPDATE notifications SET read_at = NOW()"));
+  assert.ok(update);
+  assert.match(update.sql, /WHERE user_id = \$1 AND read_at IS NULL/);
+  assert.equal(update.values[0], users.agent.id);
+});
+
 test("notification read endpoint validates IDs and prevents cross-user updates", async () => {
   const { app, queries } = setup();
   const token = await tokenFor(app, users.agent.email);
