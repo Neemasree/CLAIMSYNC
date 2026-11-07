@@ -138,3 +138,33 @@ test("agents can read history only for claims in their scope", async () => {
   const historyQuery = queries.find((item) => item.sql.includes("FROM claim_audit"));
   assert.match(historyQuery.sql, /c\.created_by = \$2 OR c\.assigned_to = \$2/);
 });
+
+
+test("notifications require authentication and are scoped to the signed-in user", async () => {
+  const { app, queries } = setup();
+  const denied = await request(app).get("/notifications");
+  assert.equal(denied.status, 401);
+  const token = await tokenFor(app, users.agent.email);
+  const response = await request(app).get("/notifications").set("Authorization", `Bearer ${token}`);
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body.notifications, []);
+  const query = queries.find((item) => item.sql.includes("FROM notifications n"));
+  assert.ok(query);
+  assert.match(query.sql, /WHERE n\.user_id = \$1/);
+  assert.equal(query.values[0], users.agent.id);
+});
+
+test("notification read endpoint validates IDs and prevents cross-user updates", async () => {
+  const { app, queries } = setup();
+  const token = await tokenFor(app, users.agent.email);
+  const invalid = await request(app).patch("/notifications/not-a-uuid/read")
+    .set("Authorization", `Bearer ${token}`);
+  assert.equal(invalid.status, 400);
+  const missing = await request(app).patch("/notifications/33333333-3333-4333-8333-333333333333/read")
+    .set("Authorization", `Bearer ${token}`);
+  assert.equal(missing.status, 404);
+  const update = queries.find((item) => item.sql.includes("UPDATE notifications SET read_at"));
+  assert.ok(update);
+  assert.match(update.sql, /WHERE id = \$1 AND user_id = \$2/);
+  assert.equal(update.values[1], users.agent.id);
+});
