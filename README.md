@@ -265,7 +265,10 @@ All claim routes require a valid `Authorization: Bearer <token>` header.
 | `GET` | `/claims` | List claims within the caller's role scope |
 | `POST` | `/claims` | Validate and create a claim |
 | `PATCH` | `/claims/:id/status` | Update status and record audit event (team leads/admins only) |
-| `GET` | `/claims/:id/history` | Read role-scoped claim activity history |\n| `GET` | `/notifications` | List the caller's latest notifications and unread count |\n| `PATCH` | `/notifications/:id/read` | Mark one owned notification as read |\n| `PATCH` | `/notifications/read-all` | Mark all caller notifications as read |
+| `GET` | `/claims/:id/history` | Read role-scoped claim activity history |
+| `GET` | `/notifications` | List the caller's latest notifications and unread count |
+| `PATCH` | `/notifications/:id/read` | Mark one owned notification as read |
+| `PATCH` | `/notifications/read-all` | Mark all caller notifications as read |
 
 ### Claim statuses
 
@@ -290,11 +293,12 @@ npm install
 npm run build
 ```
 
-GitHub Actions runs three jobs on pushes and pull requests to `main`:
+GitHub Actions runs four jobs on pushes and pull requests to `main`:
 
 1. **Test Express API** — API behavior and validation.
 2. **Build React frontend** — production bundle.
 3. **Browser end-to-end auth flow** — starts PostgreSQL, applies the schema, and exercises the browser flow with Playwright.
+4. **Validate Docker deployment** — validates the Compose configuration and builds both production images.
 
 Check the [latest workflow result](https://github.com/Neemasree/CLAIMSYNC/actions) for the authoritative pass/fail status. A CI pass applies to the tested commit and CI environment; it does not prove that a production deployment is configured or healthy.
 
@@ -311,7 +315,9 @@ Check the [latest workflow result](https://github.com/Neemasree/CLAIMSYNC/action
 - [x] API and browser test coverage for the implemented flows
 - [x] Least-loaded automatic agent assignment
 - [x] Weighted priority score (urgency + value + SLA proximity)
-- [x] Scheduled SLA breach detection with idempotent persistent in-app notifications\n- [x] Authenticated notification list and read/unread controls
+- [x] Scheduled SLA breach detection with idempotent persistent in-app notifications
+- [x] Authenticated notification list and read/unread controls
+- [x] Docker Compose deployment with Nginx same-origin API proxy
 - [x] Claim status history and audit trail
 - [ ] Production deployment and live-environment verification
 
