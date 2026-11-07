@@ -216,6 +216,32 @@ Do not put database credentials or private secrets in `VITE_*` variables; they a
 
 ---
 
+## 🐳 Run the full stack with Docker
+
+**Requirements:** Docker Desktop or Docker Engine with the Compose plugin.
+
+1. Copy `.env.docker.example` to `.env`.
+2. Replace both placeholder secrets. Use a long random alphanumeric database password so it can be safely embedded in the PostgreSQL connection URL, and a JWT secret of at least 32 characters.
+3. Start the stack:
+
+```bash
+docker compose up --build -d
+```
+
+Open the app at [http://localhost:8080](http://localhost:8080). The API health check is available at [http://localhost:5000/health](http://localhost:5000/health). PostgreSQL data persists in the `claimsync_postgres` Docker volume.
+
+Useful commands:
+
+```bash
+docker compose ps
+docker compose logs -f api
+docker compose down
+```
+
+Use `docker compose down -v` only when you intentionally want to delete the local database volume and all stored claims/users. For a public deployment, configure a real HTTPS reverse proxy/domain, set `VITE_API_URL` to the public API URL, and set `FRONTEND_ORIGINS` to the exact frontend origin before building. Do not expose the database port publicly.
+
+---
+
 ## 🔌 API overview
 
 All claim routes require a valid `Authorization: Bearer <token>` header.
