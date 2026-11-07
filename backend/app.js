@@ -56,9 +56,29 @@ export function createApp({
 } = {}) {
   if (!pool) throw new Error("createApp requires a database pool.");
   const app = express();
-  const allowedOrigin = process.env.FRONTEND_ORIGIN || "http://localhost:5173";
+  const allowedOrigins = (process.env.FRONTEND_ORIGINS || process.env.FRONTEND_ORIGIN || "http://localhost:5173")
+    .split(",").map((origin) => origin.trim()).filter(Boolean);
 
-  app.use(cors({ origin: allowedOrigin }));
+  app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    if (process.env.NODE_ENV === "production") {
+      res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    }
+    next();
+  });
+
+  app.use(cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      const error = new Error("Origin is not allowed by CORS.");
+      error.status = 403;
+      return callback(error);
+    },
+  }));
   app.use(express.json({ limit: "10kb" }));
 
   app.get("/health", async (_req, res, next) => {
@@ -316,7 +336,7 @@ export function createApp({
 
   app.use((error, _req, res, _next) => {
     console.error(error);
-    res.status(500).json({ message: "Something went wrong. Please try again." });
+    res.status(error.status === 403 ? 403 : 500).json({ message: error.status === 403 ? "This origin is not allowed." : "Something went wrong. Please try again." });
   });
 
   return app;
