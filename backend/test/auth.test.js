@@ -68,3 +68,25 @@ test("GET /me validates the JWT and returns the current user", async () => {
   const invalid = await request(app).get("/me");
   assert.equal(invalid.status, 401);
 });
+
+test("security headers are included on API responses", async () => {
+  const response = await request(makeApp()).get("/me");
+  assert.equal(response.status, 401);
+  assert.equal(response.headers["x-content-type-options"], "nosniff");
+  assert.equal(response.headers["x-frame-options"], "DENY");
+  assert.equal(response.headers["referrer-policy"], "strict-origin-when-cross-origin");
+  assert.equal(response.headers["permissions-policy"], "camera=(), microphone=(), geolocation=()");
+});
+
+test("CORS rejects browser origins outside the configured allowlist", async () => {
+  const previous = process.env.FRONTEND_ORIGINS;
+  process.env.FRONTEND_ORIGINS = "https://app.example.com";
+  try {
+    const response = await request(makeApp()).get("/me").set("Origin", "https://attacker.example");
+    assert.equal(response.status, 403);
+    assert.equal(response.body.message, "This origin is not allowed.");
+  } finally {
+    if (previous === undefined) delete process.env.FRONTEND_ORIGINS;
+    else process.env.FRONTEND_ORIGINS = previous;
+  }
+});
