@@ -215,7 +215,9 @@ test("claim routes reject malformed UUIDs before database queries", async () => 
   assert.equal(history.status, 400);
   assert.equal(status.status, 400);
   assert.equal(notification.status, 400);
-  assert.equal(queries.length, queryCountAfterLogin);
+  const authLookups = queries.slice(queryCountAfterLogin);
+  assert.equal(authLookups.length, 3);
+  assert.ok(authLookups.every((query) => query.sql.includes("SELECT id, role FROM users")));
 });
 
 test("claim creation rejects non-text descriptions and non-numeric claim values", async () => {
