@@ -10,7 +10,8 @@ export default function Dashboard({ user, token, onLogout }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [historyByClaim, setHistoryByClaim] = useState({});
-  const [historyLoading, setHistoryLoading] = useState({});\n  const [notifications, setNotifications] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState({});
+  const [notifications, setNotifications] = useState([]);
   const [form, setForm] = useState({
     policyholder: "", policyNumber: "", claimType: "Health", claimValue: "0",
     urgency: "normal", slaDueAt: "", description: "",
