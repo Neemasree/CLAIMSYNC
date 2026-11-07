@@ -30,6 +30,10 @@ function setup() {
         const user = Object.values(users).find((item) => item.email === values[0]);
         return { rows: user ? [user] : [] };
       }
+      if (sql.includes("WHERE id = $1")) {
+        const user = Object.values(users).find((item) => item.id === values[0]);
+        return { rows: user ? [{ id: user.id, role: user.role }] : [] };
+      }
       if (sql.includes("INSERT INTO claims")) {
         return { rows: [{ ...sampleClaim, policyholder: values[0], policy_number: values[1], claim_type: values[2], description: values[3], claim_value: String(values[4]), urgency: values[5], sla_due_at: values[6], created_by: values[7] }] };
       }
@@ -101,6 +105,19 @@ test("claim creation validates urgency and value before database writes", async 
   assert.equal(queries.filter((item) => item.sql.includes("INSERT INTO claims")).length, before);
 });
 
+test("role changes in PostgreSQL revoke elevated access before the JWT expires", async () => {
+  const { app } = setup();
+  const leadToken = await tokenFor(app, users.lead.email);
+  const previousRole = users.lead.role;
+  try {
+    users.lead.role = "agent";
+    const response = await request(app).patch("/claims/" + sampleClaim.id + "/status")
+      .set("Authorization", "Bearer " + leadToken).send({ status: "in_review" });
+    assert.equal(response.status, 403);
+  } finally {
+    users.lead.role = previousRole;
+  }
+});
 test("only team leads and admins can update claim status", async () => {
   const { app } = setup();
   const agentToken = await tokenFor(app, users.agent.email);
