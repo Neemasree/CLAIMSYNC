@@ -133,3 +133,12 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #a5f3
   .notification-list li { flex-direction: column; }
   .notifications-panel .claims-section-heading { align-items: flex-start; flex-direction: column; }
 }
+
+
+/* Claim queue search and filters */
+.claims-filters{display:grid;grid-template-columns:minmax(220px,1.5fr) repeat(2,minmax(160px,1fr)) auto;align-items:end;gap:14px;margin:-4px 0 20px;padding:16px;border:1px solid #e8e5fa;border-radius:14px;background:linear-gradient(110deg,#fbfaff,#f5fbff)}
+.claims-filters .field input,.claims-filters .field select{width:100%;min-height:44px;padding:0 12px;border:1px solid #dfe2f3;border-radius:10px;color:#192044;background:#fff;font:inherit}
+.claims-filters .field input:focus-visible,.claims-filters .field select:focus-visible{outline:3px solid #a5f3fc;outline-offset:2px}
+.claims-filter-count{margin:0 0 12px;color:#66708f;font-size:.8rem;font-weight:700;white-space:nowrap}
+@media(max-width:900px){.claims-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.claims-filter-count{grid-column:1/-1;margin:0}}
+@media(max-width:520px){.claims-filters{grid-template-columns:1fr}.claims-filter-count{grid-column:auto}}
