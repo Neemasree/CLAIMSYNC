@@ -145,7 +145,7 @@ flowchart TD
 
 ### Priority ordering
 
-Claims are ranked using a transparent weighted score: urgency contributes 10–55 points, claim value contributes 0–20 points, and SLA proximity contributes 0–25 points. Open claims overdue on their SLA receive the strongest deadline boost. Ties are broken by earliest SLA and creation time. This is a deterministic triage heuristic, not a machine-learning model. Automatic assignment now selects the least-loaded agent when an eligible agent account exists. Status changes are written to an append-only audit table and can be retrieved through the role-scoped history endpoint. Scheduled SLA monitoring and notification delivery are not implemented yet.
+Claims are ranked using a transparent weighted score: urgency contributes 10–55 points, claim value contributes 0–20 points, and SLA proximity contributes 0–25 points. Open claims overdue on their SLA receive the strongest deadline boost. Ties are broken by earliest SLA and creation time. This is a deterministic triage heuristic, not a machine-learning model. Automatic assignment now selects the least-loaded agent when an eligible agent account exists. Status changes are written to an append-only audit table and can be retrieved through the role-scoped history endpoint. A server-side monitor runs at startup and every 60 seconds. It creates one persistent in-app SLA-breach notification per assigned agent, team lead, and admin for each overdue open claim; a unique constraint prevents duplicate alerts. Users can view and mark their own notifications as read.
 
 ---
 
@@ -182,7 +182,7 @@ Create a database named `claimsync`, then apply the schema from the repository r
 psql -d claimsync -v ON_ERROR_STOP=1 -f backend/schema.sql
 ```
 
-The schema creates the `users`, `claims`, and `claim_audit` tables and their indexes.
+The schema creates the `users`, `claims`, `claim_audit`, and `notifications` tables and their indexes. Re-running the schema is safe for these additive tables/indexes.
 
 ### 3. Start the API
 
@@ -228,7 +228,7 @@ All claim routes require a valid `Authorization: Bearer <token>` header.
 | `GET` | `/claims` | List claims within the caller's role scope |
 | `POST` | `/claims` | Validate and create a claim |
 | `PATCH` | `/claims/:id/status` | Update status and record audit event (team leads/admins only) |
-| `GET` | `/claims/:id/history` | Read role-scoped claim activity history |
+| `GET` | `/claims/:id/history` | Read role-scoped claim activity history |\n| `GET` | `/notifications` | List the caller's latest notifications and unread count |\n| `PATCH` | `/notifications/:id/read` | Mark one owned notification as read |\n| `PATCH` | `/notifications/read-all` | Mark all caller notifications as read |
 
 ### Claim statuses
 
@@ -274,7 +274,7 @@ Check the [latest workflow result](https://github.com/Neemasree/CLAIMSYNC/action
 - [x] API and browser test coverage for the implemented flows
 - [x] Least-loaded automatic agent assignment
 - [x] Weighted priority score (urgency + value + SLA proximity)
-- [ ] Scheduled SLA breach detection and notification delivery
+- [x] Scheduled SLA breach detection with idempotent persistent in-app notifications\n- [x] Authenticated notification list and read/unread controls
 - [x] Claim status history and audit trail
 - [ ] Production deployment and live-environment verification
 
