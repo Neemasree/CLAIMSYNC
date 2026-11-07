@@ -228,7 +228,7 @@ Do not put database credentials or private secrets in `VITE_*` variables; they a
 docker compose up --build -d
 ```
 
-Open the app at [http://localhost:8080](http://localhost:8080). The API health check is available at [http://localhost:5000/health](http://localhost:5000/health). PostgreSQL data persists in the `claimsync_postgres` Docker volume.
+Open the app at [http://localhost:8080](http://localhost:8080). The API is reverse-proxied through the same origin; its health check is available at [http://localhost:8080/api/health](http://localhost:8080/api/health). PostgreSQL data persists in the `claimsync_postgres` Docker volume.
 
 Useful commands:
 
@@ -238,7 +238,7 @@ docker compose logs -f api
 docker compose down
 ```
 
-Use `docker compose down -v` only when you intentionally want to delete the local database volume and all stored claims/users. For a public deployment, configure a real HTTPS reverse proxy/domain, set `VITE_API_URL` to the public API URL, and set `FRONTEND_ORIGINS` to the exact frontend origin before building. Do not expose the database port publicly.
+Use `docker compose down -v` only when you intentionally want to delete the local database volume and all stored claims/users. For a public deployment, configure a real HTTPS reverse proxy/domain, set `VITE_API_URL` to `/api` when the API is reverse-proxied on the same origin, and set `FRONTEND_ORIGINS` to the exact frontend origin. The included Nginx configuration already proxies `/api/*` to the internal API service. Do not expose the database port publicly.
 
 ---
 
