@@ -193,7 +193,7 @@ export function createApp({
 
   async function authenticatedUser(req) {
     const authorization = req.get("authorization") || "";
-    const match = authorization.match(/^Bearer\\s+(.+)$/i);
+    const match = authorization.match(/^Bearer\s+(.+)$/i);
     const payload = match && jwtSecret ? verifyToken(match[1], jwtSecret) : null;
     if (!payload) return null;
 
