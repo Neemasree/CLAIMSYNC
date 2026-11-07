@@ -191,16 +191,26 @@ export function createApp({
   });
 
 
-  function authenticatedUser(req) {
+  async function authenticatedUser(req) {
     const authorization = req.get("authorization") || "";
-    const match = authorization.match(/^Bearer\s+(.+)$/i);
-    return match && jwtSecret ? verifyToken(match[1], jwtSecret) : null;
+    const match = authorization.match(/^Bearer\\s+(.+)$/i);
+    const payload = match && jwtSecret ? verifyToken(match[1], jwtSecret) : null;
+    if (!payload) return null;
+
+    // Refresh roles on every protected request so role changes take effect immediately.
+    const result = await pool.query(
+      "SELECT id, role FROM users WHERE id = $1 LIMIT 1",
+      [payload.sub]
+    );
+    const currentUser = result.rows[0];
+    if (!currentUser) return null;
+    return { ...payload, sub: currentUser.id, role: currentUser.role };
   }
 
 
   app.get("/notifications", async (req, res, next) => {
     try {
-      const user = authenticatedUser(req);
+      const user = await authenticatedUser(req);
       if (!user) return res.status(401).json({ message: "Please log in again." });
       const result = await pool.query(
         "SELECT n.id, n.claim_id, n.type, n.message, n.created_at, n.read_at, c.policy_number, c.policyholder, " +
@@ -215,7 +225,7 @@ export function createApp({
 
   app.patch("/notifications/:id/read", async (req, res, next) => {
     try {
-      const user = authenticatedUser(req);
+      const user = await authenticatedUser(req);
       if (!user) return res.status(401).json({ message: "Please log in again." });
       if (!isUuid(req.params.id)) return res.status(400).json({ message: "Invalid notification ID." });
       const result = await pool.query(
@@ -229,7 +239,7 @@ export function createApp({
 
   app.patch("/notifications/read-all", async (req, res, next) => {
     try {
-      const user = authenticatedUser(req);
+      const user = await authenticatedUser(req);
       if (!user) return res.status(401).json({ message: "Please log in again." });
       const result = await pool.query(
         "UPDATE notifications SET read_at = NOW() WHERE user_id = $1 AND read_at IS NULL RETURNING id",
@@ -241,7 +251,7 @@ export function createApp({
 
   app.get("/claims", async (req, res, next) => {
     try {
-      const user = authenticatedUser(req);
+      const user = await authenticatedUser(req);
       if (!user) return res.status(401).json({ message: "Please log in again." });
       const sharedQueue = user.role === "admin" || user.role === "team_lead";
       const sql = "SELECT c.*, creator.name AS created_by_name, (" +
@@ -260,7 +270,7 @@ export function createApp({
 
   app.post("/claims", async (req, res, next) => {
     try {
-      const user = authenticatedUser(req);
+      const user = await authenticatedUser(req);
       if (!user) return res.status(401).json({ message: "Please log in again." });
       const body = req.body ?? {};
       const policyholder = typeof body.policyholder === "string" ? body.policyholder.trim() : "";
@@ -301,7 +311,7 @@ export function createApp({
 
   app.patch("/claims/:id/status", async (req, res, next) => {
     try {
-      const user = authenticatedUser(req);
+      const user = await authenticatedUser(req);
       if (!user) return res.status(401).json({ message: "Please log in again." });
       if (!["admin", "team_lead"].includes(user.role)) return res.status(403).json({ message: "Only team leads and admins can update claim status." });
       const id = req.params.id;
@@ -324,7 +334,7 @@ export function createApp({
 
   app.get("/claims/:id/history", async (req, res, next) => {
     try {
-      const user = authenticatedUser(req);
+      const user = await authenticatedUser(req);
       if (!user) return res.status(401).json({ message: "Please log in again." });
       const id = req.params.id;
       if (!isUuid(id)) return res.status(400).json({ message: "Invalid claim ID." });
