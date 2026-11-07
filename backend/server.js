@@ -45,6 +45,7 @@ const server = app.listen(port, () => {
 });
 
 async function shutdown() {
+  clearInterval(slaMonitorInterval);
   server.close(async () => {
     await pool.end();
     process.exit(0);
