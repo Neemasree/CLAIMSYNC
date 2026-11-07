@@ -60,7 +60,7 @@ Insurance claim teams need to see what is urgent, understand who can act, and ke
 - React production build
 - Playwright browser workflow
 - Real PostgreSQL schema setup in browser CI
-- Signup, login, session restore, logout and claim-intake coverage
+- Signup, login, session restore, logout, claim intake, activity history, and notification panel coverage
 
 </td>
 <td width="50%" valign="top">
@@ -145,7 +145,7 @@ flowchart TD
 
 ### Priority ordering
 
-Claims are ranked using a transparent weighted score: urgency contributes 10–55 points, claim value contributes 0–20 points, and SLA proximity contributes 0–25 points. Open claims overdue on their SLA receive the strongest deadline boost. Ties are broken by earliest SLA and creation time. This is a deterministic triage heuristic, not a machine-learning model. Automatic assignment now selects the least-loaded agent when an eligible agent account exists. Status changes are written to an append-only audit table and can be retrieved through the role-scoped history endpoint. A server-side monitor runs at startup and every 60 seconds. It creates one persistent in-app SLA-breach notification per assigned agent, team lead, and admin for each overdue open claim; a unique constraint prevents duplicate alerts. Users can view and mark their own notifications as read.
+Claims are ranked using a transparent weighted score: urgency contributes 10–55 points, claim value contributes 0–20 points, and SLA proximity contributes 0–25 points. Open claims overdue on their SLA receive the strongest deadline boost. Ties are broken by earliest SLA and creation time. This is a deterministic triage heuristic, not a machine-learning model. Automatic assignment now selects the least-loaded agent when an eligible agent account exists. Status changes are written to an append-only audit table and can be retrieved through the role-scoped history endpoint. A server-side monitor runs at startup and every 60 seconds. It creates one persistent in-app SLA-breach notification per assigned agent, team lead, and admin for each overdue open claim; a unique constraint prevents duplicate alerts. Users can view and mark their own notifications as read. The notification API reports the complete unread count even though the dashboard only displays the latest 50 alerts.
 
 ---
 
