@@ -11,7 +11,7 @@ flowchart LR
   subgraph DATA["🗄️ PostgreSQL"]
     USERS[("users<br/>profiles · password hashes · roles")]
     CLAIMDB[("claims<br/>policy · value · urgency · status · SLA")]
-    AUDIT[("claim_audit<br/>actor · claim creation/status changes · timestamp")]
+    AUDIT[("claim_audit<br/>actor · claim creation/status changes · timestamp")]\n    NOTIFY[("notifications<br/>recipient · SLA breach · read_at")]
   end
   subgraph QUALITY["🧪 GitHub Actions"]
     API_TEST["API tests"]
@@ -24,7 +24,7 @@ flowchart LR
   CLAIMS --> RULES
   AUTH <--> USERS
   RULES <--> CLAIMDB
-  RULES --> AUDIT
+  RULES --> AUDIT\n  RULES --> NOTIFY
   API_TEST -.-> SERVER
   E2E -.-> UI
   E2E -.-> SERVER
@@ -35,5 +35,5 @@ flowchart LR
   classDef quality fill:#FEF3C7,stroke:#D97706,color:#78350F,stroke-width:2px
   class UI client
   class CORS,AUTH,CLAIMS,RULES api
-  class USERS,CLAIMDB data
+  class USERS,CLAIMDB,AUDIT,NOTIFY data
   class API_TEST,E2E,BUILD quality
