@@ -47,7 +47,7 @@ try {
   await page.getByLabel("Policy number").fill(policyNumber);
   await page.getByLabel("Claim type").selectOption("Health");
   await page.getByLabel("Claim value (₹)").fill("25000");
-  await page.getByLabel("Urgency").selectOption("critical");
+  await page.locator("#claim-urgency").selectOption("critical");
   await page.getByRole("button", { name: /Create claim/ }).click();
   await page.getByRole("status").filter({ hasText: "Claim created successfully" }).waitFor();
   await page.getByText(policyNumber).waitFor();
