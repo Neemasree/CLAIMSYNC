@@ -119,3 +119,17 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #a5f3
 .claim-history ol{display:grid;gap:10px;margin:0;padding-left:20px}
 .claim-history li{padding-left:4px;color:#38415a}.claim-history li small{display:block;margin-top:3px;color:#737b92}
 .claim-history p{margin:0;color:#737b92;font-size:.85rem}
+
+
+/* Persistent SLA notification panel */
+.notifications-panel { margin-bottom: 1.5rem; }
+.notification-list { display: grid; gap: .75rem; margin: 0; padding: 0; list-style: none; }
+.notification-list li { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: .9rem 1rem; border: 1px solid var(--border, #e5e7eb); border-radius: 12px; }
+.notification-list li > div { display: grid; gap: .35rem; min-width: 0; }
+.notification-list small { color: var(--muted, #64748b); overflow-wrap: anywhere; }
+.notification-unread { background: rgba(245, 158, 11, .08); }
+.notification-read { opacity: .72; }
+@media (max-width: 640px) {
+  .notification-list li { flex-direction: column; }
+  .notifications-panel .claims-section-heading { align-items: flex-start; flex-direction: column; }
+}
