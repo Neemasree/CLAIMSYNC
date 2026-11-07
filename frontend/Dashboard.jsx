@@ -12,6 +12,7 @@ export default function Dashboard({ user, token, onLogout }) {
   const [historyByClaim, setHistoryByClaim] = useState({});
   const [historyLoading, setHistoryLoading] = useState({});
   const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [form, setForm] = useState({
     policyholder: "", policyNumber: "", claimType: "Health", claimValue: "0",
     urgency: "normal", slaDueAt: "", description: "",
@@ -42,8 +43,12 @@ export default function Dashboard({ user, token, onLogout }) {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json().catch(() => ({}));
-      if (response.ok) setNotifications(data.notifications || []);
-    } catch { /* Keep the claims workspace usable if notifications are temporarily unavailable. */ }
+      if (!response.ok) throw new Error(data.message || "Unable to load notifications.");
+      setNotifications(data.notifications || []);
+      setUnreadCount(Number(data.unreadCount || 0));
+    } catch (requestError) {
+      setError(requestError instanceof TypeError ? "Cannot reach the notifications API." : requestError.message || "Unable to load notifications.");
+    }
   }, [token]);
 
   useEffect(() => { loadClaims(); loadNotifications(); }, [loadClaims, loadNotifications]);
@@ -53,9 +58,10 @@ export default function Dashboard({ user, token, onLogout }) {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (response.ok) {
-      setNotifications((items) => items.map((item) => item.id === notification.id ? { ...item, read_at: new Date().toISOString() } : item));
-    }
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || "Unable to mark notification as read.");
+    setNotifications((items) => items.map((item) => item.id === notification.id ? { ...item, read_at: data.notification?.read_at || new Date().toISOString() } : item));
+    setUnreadCount((count) => Math.max(0, count - 1));
   }
 
   async function markAllNotificationsRead() {
@@ -63,7 +69,10 @@ export default function Dashboard({ user, token, onLogout }) {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (response.ok) setNotifications((items) => items.map((item) => ({ ...item, read_at: item.read_at || new Date().toISOString() })));
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || "Unable to mark notifications as read.");
+    setNotifications((items) => items.map((item) => ({ ...item, read_at: item.read_at || new Date().toISOString() })));
+    setUnreadCount(0);
   }
 
   async function createClaim(event) {
@@ -160,17 +169,17 @@ export default function Dashboard({ user, token, onLogout }) {
 
         <section className="claims-panel notifications-panel" aria-label="Notifications">
           <div className="claims-section-heading">
-            <div><p className="eyebrow">Alerts</p><h2>Notifications ({notifications.filter((item) => !item.read_at).length} unread)</h2></div>
+            <div><p className="eyebrow">Alerts</p><h2>Notifications ({unreadCount} unread)</h2></div>
             <div className="dashboard-header-actions">
               <button className="logout-button" type="button" onClick={loadNotifications}>Refresh alerts</button>
-              <button className="logout-button" type="button" onClick={markAllNotificationsRead} disabled={!notifications.some((item) => !item.read_at)}>Mark all read</button>
+              <button className="logout-button" type="button" onClick={() => markAllNotificationsRead().catch((requestError) => setError(requestError.message || "Unable to mark notifications as read."))} disabled={unreadCount === 0}>Mark all read</button>
             </div>
           </div>
           {notifications.length === 0 ? <p className="claims-empty">No notifications yet. SLA alerts appear here when an open claim passes its deadline.</p> : (
             <ul className="notification-list">
               {notifications.map((item) => <li key={item.id} className={item.read_at ? "notification-read" : "notification-unread"}>
                 <div><strong>{item.message}</strong><small>{item.policyholder} · {item.policy_number} · {new Date(item.created_at).toLocaleString()}</small></div>
-                {!item.read_at && <button className="history-toggle" type="button" onClick={() => markNotificationRead(item)}>Mark read</button>}
+                {!item.read_at && <button className="history-toggle" type="button" onClick={() => markNotificationRead(item).catch((requestError) => setError(requestError.message || "Unable to mark notification as read."))}>Mark read</button>}
               </li>)}
             </ul>
           )}
