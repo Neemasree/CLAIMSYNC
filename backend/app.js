@@ -179,12 +179,13 @@ export function createApp({
       const user = authenticatedUser(req);
       if (!user) return res.status(401).json({ message: "Please log in again." });
       const result = await pool.query(
-        "SELECT n.id, n.claim_id, n.type, n.message, n.created_at, n.read_at, c.policy_number, c.policyholder " +
+        "SELECT n.id, n.claim_id, n.type, n.message, n.created_at, n.read_at, c.policy_number, c.policyholder, " +
+        "COUNT(*) FILTER (WHERE n.read_at IS NULL) OVER()::int AS unread_count " +
         "FROM notifications n JOIN claims c ON c.id = n.claim_id WHERE n.user_id = $1 " +
         "ORDER BY n.created_at DESC LIMIT 50",
         [user.sub]
       );
-      return res.status(200).json({ notifications: result.rows, unreadCount: result.rows.filter((item) => !item.read_at).length });
+      return res.status(200).json({ notifications: result.rows, unreadCount: result.rows[0]?.unread_count ?? 0 });
     } catch (error) { return next(error); }
   });
 
