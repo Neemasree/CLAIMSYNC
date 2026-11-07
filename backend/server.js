@@ -6,6 +6,11 @@ import { createApp } from "./app.js";
 const { Pool } = pg;
 const port = Number(process.env.PORT) || 5000;
 
+if (process.env.NODE_ENV === "production" && (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32)) {
+  console.error("Production requires JWT_SECRET with at least 32 characters.");
+  process.exit(1);
+}
+
 if (!process.env.DATABASE_URL) {
   console.error("Missing DATABASE_URL. Copy backend/.env.example to backend/.env and configure PostgreSQL.");
   process.exit(1);
@@ -13,7 +18,7 @@ if (!process.env.DATABASE_URL) {
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // Configure provider-specific TLS settings before deploying to a hosted DB.
+  ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: true } : undefined,
 });
 
 // Idempotent SLA monitor: one durable notification per recipient and breached claim.
