@@ -110,15 +110,37 @@ jobs:
   docker-build:
     name: Validate Docker deployment
     runs-on: ubuntu-latest
+    env:
+      POSTGRES_PASSWORD: ci-only-postgres-password-123456
+      JWT_SECRET: ci-only-claimsync-docker-secret-at-least-32-chars
+      FRONTEND_ORIGINS: http://localhost:8080
+      VITE_API_URL: /api
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
       - name: Validate Compose configuration
-        env:
-          POSTGRES_PASSWORD: ci-only-postgres-password-123456
-          JWT_SECRET: ci-only-claimsync-docker-secret-at-least-32-chars
         run: docker compose config --quiet
       - name: Build production API image
-        run: docker build -f backend/Dockerfile -t claimsync-api:ci .
+        run: docker build -f backend/Dockerfile -t claimsync-api:local .
       - name: Build production frontend image
-        run: docker build -f frontend/Dockerfile --build-arg VITE_API_URL=https://api.example.com -t claimsync-web:ci .
+        run: docker build -f frontend/Dockerfile --build-arg VITE_API_URL=/api -t claimsync-web:local .
+      - name: Start full stack
+        run: docker compose up -d --no-build
+      - name: Smoke test frontend and proxied API
+        run: |
+          ready=0
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/ >/dev/null && curl -fsS http://localhost:8080/api/health | grep -q '"database":"connected"'; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then
+            docker compose ps
+            docker compose logs
+            exit 1
+          fi
+      - name: Stop full stack
+        if: always()
+        run: docker compose down -v
