@@ -28,7 +28,6 @@ services:
       DATABASE_URL: postgres://claimsync:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your environment}@db:5432/claimsync
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET (at least 32 characters) in your environment}
       FRONTEND_ORIGINS: ${FRONTEND_ORIGINS:-http://localhost:8080}
-    ports:
     expose:
       - "5000"
     depends_on:
