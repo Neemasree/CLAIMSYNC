@@ -102,3 +102,19 @@ jobs:
             exit 1
           fi
           node tests/e2e-auth.mjs
+
+  docker-build:
+    name: Validate Docker deployment
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Validate Compose configuration
+        env:
+          POSTGRES_PASSWORD: ci-only-postgres-password-123456
+          JWT_SECRET: ci-only-claimsync-docker-secret-at-least-32-chars
+        run: docker compose config --quiet
+      - name: Build production API image
+        run: docker build -f backend/Dockerfile -t claimsync-api:ci .
+      - name: Build production frontend image
+        run: docker build -f frontend/Dockerfile --build-arg VITE_API_URL=https://api.example.com -t claimsync-web:ci .
