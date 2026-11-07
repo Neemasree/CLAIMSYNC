@@ -1,39 +1,53 @@
 flowchart LR
-  subgraph CLIENT["🖥️ Client"]
+  subgraph CLIENT["Browser client"]
     UI["React + Vite<br/>Signup · Login · Claims dashboard"]
+    NGINX["Nginx<br/>Static hosting · /api reverse proxy"]
   end
-  subgraph SERVER["🛡️ Express API"]
+
+  subgraph SERVER["Express API"]
     CORS["CORS + JSON parsing"]
     AUTH["Signup / Login / Me<br/>bcrypt + signed JWT"]
     CLAIMS["Claims API<br/>Create · Score · Auto-assign · Status · History"]
     RULES["Validation + role checks<br/>Priority scoring + least-loaded routing"]
+    SLA["SLA monitor<br/>Startup + every 60 seconds"]
   end
-  subgraph DATA["🗄️ PostgreSQL"]
+
+  subgraph DATA["PostgreSQL"]
     USERS[("users<br/>profiles · password hashes · roles")]
     CLAIMDB[("claims<br/>policy · value · urgency · status · SLA")]
-    AUDIT[("claim_audit<br/>actor · claim creation/status changes · timestamp")]\n    NOTIFY[("notifications<br/>recipient · SLA breach · read_at")]
+    AUDIT[("claim_audit<br/>actor · claim changes · timestamp")]
+    NOTIFY[("notifications<br/>recipient · SLA breach · read_at")]
   end
-  subgraph QUALITY["🧪 GitHub Actions"]
+
+  subgraph QUALITY["GitHub Actions"]
     API_TEST["API tests"]
     E2E["Playwright browser flow"]
     BUILD["Frontend production build"]
+    DOCKER["Compose validation + image builds"]
   end
-  UI -->|"HTTPS/JSON + Bearer JWT"| CORS
+
+  UI --> NGINX
+  NGINX -->|"same-origin /api"| CORS
   CORS --> AUTH
   CORS --> CLAIMS
   CLAIMS --> RULES
   AUTH <--> USERS
   RULES <--> CLAIMDB
-  RULES --> AUDIT\n  RULES --> NOTIFY
+  RULES --> AUDIT
+  SLA --> CLAIMDB
+  SLA --> NOTIFY
   API_TEST -.-> SERVER
   E2E -.-> UI
   E2E -.-> SERVER
   BUILD -.-> UI
+  DOCKER -.-> NGINX
+  DOCKER -.-> SERVER
+
   classDef client fill:#DBEAFE,stroke:#2563EB,color:#1E3A8A,stroke-width:2px
   classDef api fill:#DCFCE7,stroke:#16A34A,color:#14532D,stroke-width:2px
   classDef data fill:#E0E7FF,stroke:#4F46E5,color:#312E81,stroke-width:2px
   classDef quality fill:#FEF3C7,stroke:#D97706,color:#78350F,stroke-width:2px
-  class UI client
-  class CORS,AUTH,CLAIMS,RULES api
+  class UI,NGINX client
+  class CORS,AUTH,CLAIMS,RULES,SLA api
   class USERS,CLAIMDB,AUDIT,NOTIFY data
-  class API_TEST,E2E,BUILD quality
+  class API_TEST,E2E,BUILD,DOCKER quality
