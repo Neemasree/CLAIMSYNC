@@ -10,7 +10,7 @@ export default function Dashboard({ user, token, onLogout }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [historyByClaim, setHistoryByClaim] = useState({});
-  const [historyLoading, setHistoryLoading] = useState({});
+  const [historyLoading, setHistoryLoading] = useState({});\n  const [notifications, setNotifications] = useState([]);
   const [form, setForm] = useState({
     policyholder: "", policyNumber: "", claimType: "Health", claimValue: "0",
     urgency: "normal", slaDueAt: "", description: "",
@@ -35,7 +35,35 @@ export default function Dashboard({ user, token, onLogout }) {
     }
   }, [token]);
 
-  useEffect(() => { loadClaims(); }, [loadClaims]);
+  const loadNotifications = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/notifications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) setNotifications(data.notifications || []);
+    } catch { /* Keep the claims workspace usable if notifications are temporarily unavailable. */ }
+  }, [token]);
+
+  useEffect(() => { loadClaims(); loadNotifications(); }, [loadClaims, loadNotifications]);
+
+  async function markNotificationRead(notification) {
+    const response = await fetch(`${API_BASE_URL}/notifications/${notification.id}/read`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (response.ok) {
+      setNotifications((items) => items.map((item) => item.id === notification.id ? { ...item, read_at: new Date().toISOString() } : item));
+    }
+  }
+
+  async function markAllNotificationsRead() {
+    const response = await fetch(`${API_BASE_URL}/notifications/read-all`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (response.ok) setNotifications((items) => items.map((item) => ({ ...item, read_at: item.read_at || new Date().toISOString() })));
+  }
 
   async function createClaim(event) {
     event.preventDefault();
@@ -128,6 +156,24 @@ export default function Dashboard({ user, token, onLogout }) {
         <p className="story-eyebrow dashboard-eyebrow">Claims operations</p>
         <h1>Welcome back, {user.name.split(" ")[0]}.</h1>
         <p className="dashboard-intro">Capture claims, prioritize urgent cases, and keep SLA deadlines visible.</p>
+
+        <section className="claims-panel notifications-panel" aria-label="Notifications">
+          <div className="claims-section-heading">
+            <div><p className="eyebrow">Alerts</p><h2>Notifications ({notifications.filter((item) => !item.read_at).length} unread)</h2></div>
+            <div className="dashboard-header-actions">
+              <button className="logout-button" type="button" onClick={loadNotifications}>Refresh alerts</button>
+              <button className="logout-button" type="button" onClick={markAllNotificationsRead} disabled={!notifications.some((item) => !item.read_at)}>Mark all read</button>
+            </div>
+          </div>
+          {notifications.length === 0 ? <p className="claims-empty">No notifications yet. SLA alerts appear here when an open claim passes its deadline.</p> : (
+            <ul className="notification-list">
+              {notifications.map((item) => <li key={item.id} className={item.read_at ? "notification-read" : "notification-unread"}>
+                <div><strong>{item.message}</strong><small>{item.policyholder} · {item.policy_number} · {new Date(item.created_at).toLocaleString()}</small></div>
+                {!item.read_at && <button className="history-toggle" type="button" onClick={() => markNotificationRead(item)}>Mark read</button>}
+              </li>)}
+            </ul>
+          )}
+        </section>
 
         <div className="claims-metrics" aria-label="Claims summary">
           <article><span>Total claims</span><strong>{claims.length}</strong></article>
