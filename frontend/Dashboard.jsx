@@ -17,6 +17,19 @@ export default function Dashboard({ user, token, onLogout }) {
     policyholder: "", policyNumber: "", claimType: "Health", claimValue: "0",
     urgency: "normal", slaDueAt: "", description: "",
   });
+  const [claimSearch, setClaimSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [urgencyFilter, setUrgencyFilter] = useState("all");
+
+  const filteredClaims = claims.filter((claim) => {
+    const search = claimSearch.trim().toLowerCase();
+    const matchesSearch = !search || [
+      claim.policyholder, claim.policy_number, claim.claim_type, claim.created_by_name,
+    ].some((value) => String(value || "").toLowerCase().includes(search));
+    return matchesSearch
+      && (statusFilter === "all" || claim.status === statusFilter)
+      && (urgencyFilter === "all" || claim.urgency === urgencyFilter);
+  });
 
   const loadClaims = useCallback(async () => {
     setLoading(true);
@@ -216,13 +229,21 @@ export default function Dashboard({ user, token, onLogout }) {
             <div><p className="eyebrow">Work queue</p><h2>Claims queue</h2></div>
             <button className="logout-button" type="button" onClick={loadClaims} disabled={loading}>{loading ? "Refreshing…" : "Refresh"}</button>
           </div>
+          <div className="claims-filters" aria-label="Filter claims">
+            <div className="field"><label htmlFor="claim-search">Search claims</label><input id="claim-search" type="search" placeholder="Policyholder, policy number, type…" value={claimSearch} onChange={(event) => setClaimSearch(event.target.value)} /></div>
+            <div className="field"><label htmlFor="claim-status-filter">Status</label><select id="claim-status-filter" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="all">All statuses</option><option value="submitted">Submitted</option><option value="in_review">In review</option><option value="awaiting_information">Awaiting information</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="closed">Closed</option></select></div>
+            <div className="field"><label htmlFor="claim-urgency-filter">Urgency</label><select id="claim-urgency-filter" value={urgencyFilter} onChange={(event) => setUrgencyFilter(event.target.value)}><option value="all">All urgency levels</option><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="critical">Critical</option></select></div>
+            <p className="claims-filter-count" aria-live="polite">Showing {filteredClaims.length} of {claims.length} claims</p>
+          </div>
           {loading ? <p className="claims-empty">Loading claims…</p> : claims.length === 0 ? (
             <p className="claims-empty">No claims yet. Create the first claim using the form above.</p>
+          ) : filteredClaims.length === 0 ? (
+            <p className="claims-empty">No claims match these filters. Try changing your search or filters.</p>
           ) : (
             <div className="claims-table-wrap">
               <table className="claims-table">
                 <thead><tr><th>Policyholder</th><th>Type / Policy</th><th>Value</th><th>Priority score</th><th>Urgency</th><th>Status</th><th>SLA deadline</th><th>Activity</th>{["admin", "team_lead"].includes(user.role) && <th>Update</th>}</tr></thead>
-                <tbody>{claims.map((claim) => <><tr key={claim.id}>
+                <tbody>{filteredClaims.map((claim) => <React.Fragment key={claim.id}><tr key={claim.id}>
                   <td><strong>{claim.policyholder}</strong><small>{claim.created_by_name || "Claim owner"}</small></td>
                   <td>{claim.claim_type}<small>{claim.policy_number}</small></td>
                   <td>{money(claim.claim_value)}</td>
@@ -232,7 +253,7 @@ export default function Dashboard({ user, token, onLogout }) {
                   <td>{claim.sla_due_at ? <><span>{new Date(claim.sla_due_at).toLocaleString()}</span><small className={new Date(claim.sla_due_at).getTime() < Date.now() && !["approved", "rejected", "closed"].includes(claim.status) ? "sla-overdue" : new Date(claim.sla_due_at).getTime() < Date.now() + 24 * 60 * 60 * 1000 && !["approved", "rejected", "closed"].includes(claim.status) ? "sla-due-soon" : "sla-on-track"}>{["approved", "rejected", "closed"].includes(claim.status) ? "Resolved" : new Date(claim.sla_due_at).getTime() < Date.now() ? "Overdue" : new Date(claim.sla_due_at).getTime() < Date.now() + 24 * 60 * 60 * 1000 ? "Due within 24 hours" : "On track"}</small></> : "Not set"}</td>
                   <td><button className="history-toggle" type="button" onClick={() => toggleHistory(claim)} disabled={historyLoading[claim.id]}>{historyLoading[claim.id] ? "Loading…" : historyByClaim[claim.id] ? "Hide history" : "View history"}</button></td>
                   {["admin", "team_lead"].includes(user.role) && <td><select aria-label={`Status for ${claim.policyholder}`} value={claim.status} onChange={(e) => updateStatus(claim, e.target.value)}><option value="submitted">Submitted</option><option value="in_review">In review</option><option value="awaiting_information">Awaiting information</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="closed">Closed</option></select></td>}
-                </tr>{historyByClaim[claim.id] && <tr className="history-row" key={`${claim.id}-history`}><td colSpan={["admin", "team_lead"].includes(user.role) ? 9 : 8}><div className="claim-history"><strong>Claim activity</strong>{historyByClaim[claim.id].length ? <ol>{historyByClaim[claim.id].map((entry) => <li key={entry.id}><span>{entry.action === "claim_created" ? "Claim created" : `Status changed: ${(entry.previous_status || "—").replaceAll("_", " ")} → ${(entry.new_status || "").replaceAll("_", " ")}`}</span><small>{entry.actor_name || "Former user"} · {new Date(entry.created_at).toLocaleString()}</small></li>)}</ol> : <p>No activity has been recorded yet.</p>}</div></td></tr>}</>)}</tbody>
+                </tr>{historyByClaim[claim.id] && <tr className="history-row" key={`${claim.id}-history`}><td colSpan={["admin", "team_lead"].includes(user.role) ? 9 : 8}><div className="claim-history"><strong>Claim activity</strong>{historyByClaim[claim.id].length ? <ol>{historyByClaim[claim.id].map((entry) => <li key={entry.id}><span>{entry.action === "claim_created" ? "Claim created" : `Status changed: ${(entry.previous_status || "—").replaceAll("_", " ")} → ${(entry.new_status || "").replaceAll("_", " ")}`}</span><small>{entry.actor_name || "Former user"} · {new Date(entry.created_at).toLocaleString()}</small></li>)}</ol> : <p>No activity has been recorded yet.</p>}</div></td></tr>}</React.Fragment>)}</tbody>
               </table>
             </div>
           )}
