@@ -44,6 +44,7 @@ Insurance claim teams need to see what is urgent, understand who can act, and ke
 - Create claims with policyholder, policy number, type, value, urgency, description, and optional SLA deadline
 - PostgreSQL persistence and validation
 - Weighted priority score (0–100) combines urgency, claim value, and SLA proximity; highest score appears first
+- Searchable claims queue with status and urgency filters
 - Summary counts for total, urgent, and open claims
 - New claims are automatically assigned to the least-loaded agent (open-claim count, then account age)
 - Deadline labels: overdue, due within 24 hours, on track
@@ -266,7 +267,7 @@ Check the [latest workflow result](https://github.com/Neemasree/CLAIMSYNC/action
 ## 🗺️ Roadmap
 
 - [x] Signup, login, and authenticated session
-- [x] Role-aware claims queue
+- [x] Role-aware claims queue with search, status, and urgency filters
 - [x] Claim intake persisted in PostgreSQL
 - [x] Urgency/SLA-based ordering
 - [x] Role-protected status updates
