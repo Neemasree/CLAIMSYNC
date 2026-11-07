@@ -37,6 +37,7 @@ try {
   await page.getByRole("button", { name: /Log in/ }).click();
   await page.getByRole("heading", { name: "Welcome back, QA." }).waitFor();
   await page.getByText(email).waitFor();
+  await page.getByRole("heading", { name: /Notifications \(0 unread\)/ }).waitFor();
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true,
     "dashboard should not overflow horizontally on mobile");
 
@@ -83,7 +84,7 @@ try {
   assert.match(await page.getByRole("alert").innerText(), /already exists/i);
 
   assert.deepEqual(pageErrors, [], "browser should not report uncaught JavaScript errors");
-  console.log("PASS: mobile signup validation, persisted signup, login, claim creation and queue visibility, session restore, logout, invalid login, duplicate signup, no browser exceptions");
+  console.log("PASS: mobile signup validation, persisted signup, login, claim creation, activity history, notifications panel, session restore, logout, invalid login, duplicate signup, no browser exceptions");
 } finally {
   await browser.close();
 }
