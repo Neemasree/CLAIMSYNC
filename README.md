@@ -67,10 +67,11 @@ Insurance claim teams need to see what is urgent, understand who can act, and ke
 <td width="50%" valign="top">
 
 ### 🧭 Product direction
-- Scheduled SLA breach detection and durable in-app notifications
 - Configurable team routing and assignment policies
+- Optional outbound email/webhook delivery for SLA alerts
+- Production deployment with HTTPS, managed PostgreSQL, backups, and live-environment monitoring
 
-These are planned extensions; the current queue already performs least-loaded agent assignment.
+SLA breach detection, durable in-app notifications, and least-loaded agent assignment are already implemented.
 
 </td>
 </tr>
@@ -90,6 +91,7 @@ flowchart LR
 
   subgraph SERVER["🛡️ Express API"]
     CORS["CORS + JSON parsing"]
+    SLA["SLA monitor<br/>Startup + every 60 seconds"]
     AUTH["Signup / Login / Me<br/>bcrypt + signed JWT"]
     CLAIMS["Claims API<br/>Create · Score · Auto-assign · Status · History"]
     RULES["Validation + role checks<br/>Priority scoring + least-loaded routing"]
@@ -99,15 +101,17 @@ flowchart LR
     USERS[("users<br/>profiles · password hashes · roles")]
     CLAIMDB[("claims<br/>policy · value · urgency · status · SLA")]
     AUDIT[("claim_audit<br/>actor · previous/new status · timestamp")]
+    NOTIFY[("notifications<br/>recipient · SLA breach · read_at")]
   end
 
   subgraph QUALITY["🧪 GitHub Actions"]
     API_TEST["API tests"]
     E2E["Playwright browser flow"]
     BUILD["Frontend production build"]
+    DOCKER["Compose validation + image builds"]
   end
 
-  UI -->|"HTTPS/JSON + Bearer JWT"| CORS
+  UI -->|"HTTPS + same-origin /api"| CORS
   CORS --> AUTH
   CORS --> CLAIMS
   CLAIMS --> RULES
@@ -124,9 +128,9 @@ flowchart LR
   classDef data fill:#E0E7FF,stroke:#4F46E5,color:#312E81,stroke-width:2px
   classDef quality fill:#FEF3C7,stroke:#D97706,color:#78350F,stroke-width:2px
   class UI client
-  class CORS,AUTH,CLAIMS,RULES api
-  class USERS,CLAIMDB data
-  class API_TEST,E2E,BUILD quality
+  class CORS,AUTH,CLAIMS,RULES,SLA api
+  class USERS,CLAIMDB,AUDIT,NOTIFY data
+  class API_TEST,E2E,BUILD,DOCKER quality
 ```
 
 ### Claim lifecycle (current implementation)
