@@ -5,6 +5,10 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 const DEV_JWT_SECRET = "claimsync-local-development-secret-change-before-deploy";
 
+function isUuid(value) {
+  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 function signToken(user, secret) {
   const encode = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
   const header = encode({ alg: "HS256", typ: "JWT" });
@@ -213,7 +217,7 @@ export function createApp({
     try {
       const user = authenticatedUser(req);
       if (!user) return res.status(401).json({ message: "Please log in again." });
-      if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return res.status(400).json({ message: "Invalid notification ID." });
+      if (!isUuid(req.params.id)) return res.status(400).json({ message: "Invalid notification ID." });
       const result = await pool.query(
         "UPDATE notifications SET read_at = COALESCE(read_at, NOW()) WHERE id = $1 AND user_id = $2 RETURNING id, read_at",
         [req.params.id, user.sub]
@@ -262,15 +266,18 @@ export function createApp({
       const policyholder = typeof body.policyholder === "string" ? body.policyholder.trim() : "";
       const policyNumber = typeof body.policyNumber === "string" ? body.policyNumber.trim() : "";
       const claimType = typeof body.claimType === "string" ? body.claimType.trim() : "";
+      if (body.description !== undefined && body.description !== null && typeof body.description !== "string") return res.status(400).json({ message: "Description must be text." });
       const description = typeof body.description === "string" ? body.description.trim() : "";
       const urgency = body.urgency ?? "normal";
-      const claimValue = body.claimValue === undefined ? 0 : Number(body.claimValue);
+      const claimValueInput = body.claimValue;
+      const invalidClaimValueType = claimValueInput !== undefined && claimValueInput !== null && typeof claimValueInput !== "number" && typeof claimValueInput !== "string";
+      const claimValue = claimValueInput === undefined ? 0 : Number(claimValueInput);
       const slaDueAt = body.slaDueAt || null;
       if (!policyholder || policyholder.length > 120) return res.status(400).json({ message: "Policyholder must contain between 1 and 120 characters." });
       if (!policyNumber || policyNumber.length > 80) return res.status(400).json({ message: "Policy number must contain between 1 and 80 characters." });
       if (!claimType || claimType.length > 80) return res.status(400).json({ message: "Claim type must contain between 1 and 80 characters." });
       if (!["low", "normal", "high", "critical"].includes(urgency)) return res.status(400).json({ message: "Urgency must be low, normal, high, or critical." });
-      if (!Number.isFinite(claimValue) || claimValue < 0 || claimValue > 1000000000000) return res.status(400).json({ message: "Claim value must be a non-negative number within the supported limit." });
+      if (invalidClaimValueType || claimValueInput === null || (typeof claimValueInput === "string" && !claimValueInput.trim()) || !Number.isFinite(claimValue) || claimValue < 0 || claimValue > 1000000000000) return res.status(400).json({ message: "Claim value must be a non-negative number within the supported limit." });
       if (description.length > 5000) return res.status(400).json({ message: "Description must be at most 5000 characters." });
       if (slaDueAt && (typeof slaDueAt !== "string" || Number.isNaN(Date.parse(slaDueAt)))) return res.status(400).json({ message: "SLA deadline must be a valid date." });
       const result = await pool.query(
@@ -300,7 +307,7 @@ export function createApp({
       const id = req.params.id;
       const status = req.body?.status;
       const allowedStatuses = ["submitted", "in_review", "awaiting_information", "approved", "rejected", "closed"];
-      if (!/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ message: "Invalid claim ID." });
+      if (!isUuid(id)) return res.status(400).json({ message: "Invalid claim ID." });
       if (!allowedStatuses.includes(status)) return res.status(400).json({ message: "Choose a valid claim status." });
       const result = await pool.query(
         "WITH previous AS (SELECT id, status FROM claims WHERE id = $2 FOR UPDATE), " +
@@ -320,7 +327,7 @@ export function createApp({
       const user = authenticatedUser(req);
       if (!user) return res.status(401).json({ message: "Please log in again." });
       const id = req.params.id;
-      if (!/^[0-9a-f-]{36}$/i.test(id)) return res.status(400).json({ message: "Invalid claim ID." });
+      if (!isUuid(id)) return res.status(400).json({ message: "Invalid claim ID." });
       const sharedQueue = user.role === "admin" || user.role === "team_lead";
       const result = await pool.query(
         "SELECT a.id, a.claim_id, a.action, a.previous_status, a.new_status, a.created_at, actor.name AS actor_name " +
